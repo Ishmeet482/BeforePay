@@ -1,0 +1,13 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "vite",
+  "installCommand": "npm ci",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "headers": [{"source": "/api/:path*", "headers": [
+    {"key": "Cache-Control", "value": "private, no-store"},
+    {"key": "X-Vercel-Enable-Rewrite-Caching", "value": "0"},
+    {"key": "Vary", "value": "Cookie, Origin"}
+  ]}],
+  "rewrites": [{"source": "/api/:path*", "destination": "https://backend-not-configured.invalid/api/:path*"}]
+}

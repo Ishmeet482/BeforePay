@@ -1,0 +1,354 @@
+/* Shared structure, role-specific accent tokens. Semantic status colours stay shared. */
+:root {
+  --accent: #086b65;
+  --accent-hover: #07534e;
+  --accent-soft: #e4f1ed;
+  --accent-line: #a8c8bf;
+  --rail-active: #245258;
+  --rail-hover: #21484e;
+  --rail-line: #466c70;
+  --rail-text: #e1eeeb;
+  --rail-muted: #c0d5d1;
+  --role-canvas: #f3f5f1;
+}
+[data-workspace=buyer] {
+  --accent: #086b65;
+  --accent-hover: #07534e;
+  --accent-soft: #e4f1ed;
+  --accent-line: #a8c8bf;
+  --nav: #14383d;
+  --rail-active: #245258;
+  --rail-hover: #21484e;
+  --rail-line: #466c70;
+  --rail-text: #e1eeeb;
+  --rail-muted: #c0d5d1;
+  --role-canvas: #f3f5f1;
+  --green: var(--accent);
+  --ai: var(--accent);
+}
+[data-workspace=merchant] {
+  --accent: #444f9e;
+  --accent-hover: #333c80;
+  --accent-soft: #eaedf8;
+  --accent-line: #bcc5e1;
+  --nav: #252e47;
+  --rail-active: #404b73;
+  --rail-hover: #35405f;
+  --rail-line: #596585;
+  --rail-text: #e8ebf6;
+  --rail-muted: #c8cfe3;
+  --role-canvas: #f3f4f7;
+  --green: var(--accent);
+  --ai: var(--accent);
+}
+
+@media screen {
+  .app-shell { font-size: 16px; line-height: 1.6; min-height: 100dvh; }
+  .app-shell[data-workspace] { background: var(--role-canvas); }
+  .app-shell p { font-size: 16px; line-height: 1.65; }
+  .app-shell :is(label,legend,summary) { font-size: 15px; }
+  .app-shell :is(button,.button) { font-size: 15px; min-height: 44px; padding: 10px 14px; }
+  .app-shell :is(input:not([type=checkbox]):not([type=radio]),select,textarea) { font-size: 16px; min-height: 46px; padding: 10px 12px; }
+  .app-shell :is(input[type=checkbox],input[type=radio]) { accent-color: var(--accent); width: 20px; height: 20px; flex-shrink: 0; }
+  .app-shell h2 { font-size: clamp(25px,2.1vw,30px); line-height: 1.3; }
+  .app-shell h3 { font-size: 20px; line-height: 1.45; }
+  .app-shell h4 { font-size: 16px; line-height: 1.5; }
+  .app-shell :is(small,.hint,.toolbar p,.prototype-note,.row-note,.version-meta,.badge,.state-label,.perspective-label,.workspace-location) { font-size: 14px; line-height: 1.55; }
+  .app-shell .status { font-size: 14px; line-height: 1.5; }
+  .app-shell :is(.eyebrow,.rail-caption,.ownership-label) { font-size: 12px; line-height: 1.5; letter-spacing: .06em; }
+  .app-shell :is(.action-explanation,.action-guidance p,.task-context > summary,.technical-details > summary) { font-size: 14px; line-height: 1.6; }
+  .app-shell :is(pre,code) { font-size: 13px; }
+  .app-shell blockquote { font-size: 16px; line-height: 1.65; }
+  .app-shell :is(button.primary,.button.primary,.ai-button) { background: var(--accent); border-color: var(--accent); color: white; }
+  .app-shell :is(button.primary,.button.primary,.ai-button):disabled { background: #e3e6e3; border-color: #bec7c1; color: #52615b; }
+  .app-shell[data-workspace] :is(.task-intro,.prototype-switch,.dashboard-guide,.dashboard-guide.merchant,.next-action,.merchant-start,.clarification-panel,.ai-panel) { background: var(--accent-soft); border-color: var(--accent-line); }
+  [data-workspace] :where(.task-intro,.dashboard-guide,.next-action,.merchant-start,.clarification-panel) { border-left-color: var(--accent); }
+  [data-workspace] :is(.workspace-view-switch button[aria-pressed=true],.prototype-switch button[aria-pressed=true],.demo-role-options label.selected) { color: var(--accent); background: var(--accent-soft); border-color: var(--accent-line); }
+  [data-workspace] .prototype-switch button[aria-pressed=true] { background: var(--paper); }
+  [data-workspace] .refund-result { background: var(--paper); border-top-color: var(--accent); }
+  [data-workspace] .merchant-view .merchant-editor > summary { color: var(--accent); }
+  [data-workspace] .consistency-report .status-blocked { color: #942e31; background: #f8e5e1; }
+
+  /* One edge-aligned rail. Its own navigation scrolls before identity can overlap. */
+  .journey-layout { grid-template-columns: 248px minmax(0,1fr); max-width: none; margin: 0; }
+  .journey-rail {
+    display: flex; flex-direction: column; gap: 0; padding: 12px;
+    height: calc(100dvh - var(--app-header-height,68px));
+    min-height: 0; max-height: calc(100dvh - var(--app-header-height,68px));
+    top: var(--app-header-height,68px); overflow: hidden;
+    border-color: var(--rail-line); color: var(--rail-text);
+  }
+  .journey-rail .back-link { flex-shrink: 0; margin: 0 0 8px; padding: 7px 8px; min-height: 40px; color: var(--rail-text); }
+  .journey-rail .rail-caption { flex-shrink: 0; margin: 0 8px 8px; color: var(--rail-muted); font-size: 12px; }
+  .journey-rail .rail-content { flex: 1 1 auto; min-height: 0; overflow-y: auto; scrollbar-gutter: stable; padding: 6px 6px 12px; margin: -6px -6px 0; }
+  .journey-rail .tabs { gap: 3px; }
+  .journey-rail .tabs button { padding: 9px 10px; gap: 8px; font-size: 15px; line-height: 1.4; color: var(--rail-text); flex-shrink: 0; }
+  .journey-rail .tabs button[aria-pressed=true] { background: var(--rail-active); border-color: var(--rail-line); color: white; box-shadow: inset 3px 0 var(--accent-line); }
+  .journey-rail .step-number { font-size: 12px; color: var(--rail-muted); }
+  .journey-rail .nav-state { font-size: 13px; line-height: 1.45; color: var(--rail-muted); margin-top: 3px; }
+  .journey-rail .nav-state.tone-success { color: #b8deb8; }
+  .journey-rail .nav-state.tone-attention { color: #f5d59a; }
+  .journey-rail .nav-state.tone-blocked { color: #f6b7ac; }
+  .journey-rail .rail-next { flex-shrink: 0; padding: 10px 8px; margin: 10px 0 0; border-color: var(--rail-line); }
+  .journey-rail .rail-next .eyebrow { display: none; }
+  .journey-rail .rail-next p { font-size: 14px; margin: 0 0 8px; color: var(--rail-text); }
+  .journey-rail .rail-next button { background: var(--rail-active); border-color: var(--rail-line); color: white; font-size: 14px; }
+  .journey-rail .demo-identity { flex-shrink: 0; margin: 0; padding: 12px 8px 0; border-color: var(--rail-line); }
+  .journey-rail .demo-identity .eyebrow { display: none; }
+  .journey-rail .demo-identity > strong { font-size: 16px; }
+  .journey-rail .demo-identity > p { font-size: 14px; margin: 3px 0 10px; color: var(--rail-text); }
+  .journey-rail .demo-identity span { color: var(--rail-muted); font-size: 12px; margin: 3px 0 0; }
+  .journey-rail .demo-identity > div { display: flex; gap: 8px; flex-wrap: wrap; }
+  .journey-rail .demo-identity button { font-size: 14px; padding: 9px 10px; min-height: 44px; color: var(--rail-text); border-color: var(--rail-line); }
+  .dashboard-sidebar nav { gap: 4px; }
+  .dashboard-sidebar nav :is(a,button) { font-size: 16px; min-height: 46px; padding: 10px 12px; color: var(--rail-text); }
+  .dashboard-sidebar nav a[aria-current=page] { background: var(--rail-active); border-color: var(--rail-line); }
+  .header-role { margin-left: auto; font-size: 14px; font-weight: 650; color: var(--rail-text); white-space: nowrap; }
+  .app-header { gap: 20px; border-color: var(--rail-line); }
+  .app-header .environment-label { margin-left: 0; font-size: 13px; color: #f2f6ef; }
+  .app-header .environment-label small { font-size: 12px; color: var(--rail-muted); }
+  .app-header .global-nav a { font-size: 15px; }
+  .app-header .brand-mark { background: var(--accent-soft); color: var(--nav); }
+  .app-header .global-nav a[aria-current=page] { border-color: var(--accent-line); }
+  .app-shell :is(.wordmark) { padding: 0; font-size: 23px; }
+
+  /* Layout responds to the kind of content, not a uniform scale factor. */
+  .journey-main { padding: 24px var(--gutter) 36px; }
+  .workspace-view-switch { padding-bottom: 12px; margin-bottom: 16px; }
+  .workspace-view-switch :is(strong,small) { font-size: 15px; }
+  .booking-heading { gap: 20px; padding-bottom: 16px; margin-bottom: 20px; }
+  .booking-heading h1 { font-size: clamp(28px,2.4vw,38px); }
+  .workspace-location { margin-bottom: 6px; }
+  .dashboard-layout .bookings-page { padding-top: 24px; }
+  .bookings-page { max-width: none; padding-bottom: 36px; }
+  .dashboard-guide { margin-bottom: 20px; padding: 16px 20px; }
+  .dashboard-guide :is(p,li) { font-size: 15px; }
+  .dashboard-list-heading p { font-size: 14px; }
+  .page-heading { align-items: start; gap: 20px; margin-bottom: 20px; }
+  .overview-layout { grid-template-columns: minmax(0,1fr) 290px; gap: 24px; }
+  .next-action { padding: 20px 24px; margin-bottom: 20px; }
+  .next-action h2 { margin-top: 8px; }
+  .financial-ledger { padding: 20px; }
+  .financial-ledger dl > div { font-size: 16px; margin: 12px 0; }
+  .financial-ledger .ledger-total dd { font-size: 32px; }
+  .financial-ledger .ledger-total dt { font-size: 15px; }
+  .financial-ledger .ledger-total { padding-top: 14px; }
+  .progress-row { grid-template-columns: minmax(120px,.8fr) minmax(150px,1fr) minmax(140px,.8fr); gap: 12px; font-size: 15px; padding: 12px 0; }
+  .progress-row button { font-size: 15px; min-height: 44px; padding: 8px 10px; }
+  .merchant-overview .progress-row { grid-template-columns: minmax(0,1fr) minmax(0,1.2fr) 15rem; }
+  .overview-tasks { --task-columns: minmax(0,.8fr) minmax(0,1.2fr) 12rem; }
+  .date-ledger :is(dt,dd) { font-size: 15px; }
+  .task-intro { grid-template-columns: 150px minmax(0,1fr); gap: 16px; padding: 14px 18px; margin-bottom: 20px; }
+  .task-intro strong { font-size: 17px; }
+  .task-intro .ownership-label { font-size: 14px; }
+  .app-shell .toolbar p { font-size: 15px; max-width: 70ch; }
+  .panel > p,.correction-context p,.consistency-report p { max-width: 72ch; }
+  .review-grid { grid-template-columns: minmax(0,1fr) 290px; gap: 24px; }
+  .review-controls { max-width: none; grid-template-columns: minmax(0,1fr) minmax(240px,.7fr); gap: 24px; }
+  .source-layout { grid-template-columns: minmax(260px,.85fr) minmax(0,1.25fr); gap: 24px; }
+  .source-layout :is(.source-inbox,.ai-panel) { padding: 20px; }
+  .source-layout .source-inbox { border-color: var(--accent-line); }
+  .source-layout .source-item p { font-size: 15px; }
+  .app-shell .data-table :is(th,td) { font-size: 16px; line-height: 1.55; }
+  .app-shell .data-table thead th { font-size: 14px; }
+  .app-shell .bookings-table .booking-row > :is(th,td)::before { font-size: 14px; }
+  .bookings-table th,.bookings-table td { padding: 14px; }
+  .bookings-table thead { background: var(--accent-soft); }
+  .bookings-table h2 { font-size: 19px; }
+  .app-shell .bookings-table :is(p,small,.state-label) { font-size: 14px; }
+  .app-shell .bookings-table strong { font-size: 16px; }
+  .app-shell .row-action { padding: 9px; font-size: 15px; line-height: 1.45; }
+  [data-workspace] .bookings-table .row-action { color: var(--accent); background: var(--accent-soft); border-color: var(--accent-line); }
+  .agreement-group .section-heading h3 { font-size: 18px; }
+  .app-shell .agreement-group .summary-line p { font-size: 16px; line-height: 1.65; }
+  .app-shell .agreement-group .section-heading .badge { font-size: 13px; }
+  .app-shell .term-table .table-actions small,.app-shell .summary-evidence small { font-size: 13px; }
+  .app-shell :is(.evidence-link,.resolve-link) { font-size: 15px; min-height: 44px; padding: 8px 0; }
+  .section-editor > summary { font-size: 15px; }
+  .comparison-columns { gap: 24px; }
+  .app-shell .comparison-columns :is(h4,.term) { font-size: 16px; }
+  .prototype-switch { gap: 16px; flex-wrap: wrap; }
+  .prototype-switch > :first-child { min-width: 180px; }
+  .prototype-switch > [role=group] { display: flex; flex-wrap: wrap; gap: 8px; }
+  .sample-buttons button { font-size: 15px; }
+  [data-workspace] .rule-workbench[open] { background: var(--paper); }
+  .policy-selection { max-width: none; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 24px; }
+  .policy-status,.policy-status small { font-size: 14px; }
+  .cancellation-flow { max-width: 960px; }
+  .cancellation-flow.has-result { max-width: none; gap: 24px; }
+  .app-shell :is(.applied-cutoff dt,.applied-cutoff dd,.refund-ledger dt) { font-size: 15px; }
+  .checkout-readiness { max-width: 960px; }
+  .checkout-approval { grid-template-columns: minmax(240px,.8fr) minmax(0,1.2fr); gap: 24px; }
+  .completed-receipt { padding: 28px 32px; }
+  .app-shell :is(.receipt-header p,.receipt-amount p,.receipt-snapshot-note,.receipt-label-note,.receipt-footer p,.receipt-footer strong) { font-size: 14px; }
+  .app-shell :is(.receipt-columns h3,.receipt-rules h3,.receipt-heading h2) { font-size: 17px; }
+  .app-shell :is(.receipt-reference dt,.receipt-rules dt) { font-size: 14px; }
+  .app-shell :is(.receipt-reference code,.receipt-rules code,.receipt-rules dd > span) { font-size: 13px; }
+  .app-shell :is(.copy-reference,.copy-status) { font-size: 14px; }
+  .receipt-reference dd { gap: 12px; }
+  .receipt-seal strong { color: var(--success); font-size: 15px; }
+  .receipt-seal span { font-size: 14px; }
+  .receipt-heading { gap: 16px; }
+  .receipt-booking { font-size: 24px; }
+  .payment-history { max-width: 1050px; }
+  .app-shell .ai-explainer h2 { font-size: 27px; }
+  .app-shell .entry-copy h1 { font-size: clamp(44px,4.5vw,72px); }
+  .app-shell .entry-lead { font-size: 18px; }
+  .app-shell :is(.example-terms p,.example-consequence p,.entry-trust,.example-note,.illustrated-agreement figcaption) { font-size: 14px; }
+  .app-shell :is(.example-label,.document-label) { font-size: 12px; }
+  .app-shell .example-terms h2 { font-size: 19px; }
+  .app-shell .entry-journey p { font-size: 16px; }
+  .app-shell .entry-actions .button { font-size: 16px; }
+  .app-footer { font-size: 13px; gap: 20px; padding: 20px var(--gutter); }
+  .demo-login :is(input,select,textarea) { font-size: 16px; }
+  .demo-login :is(label,legend,.demo-password-label label,.demo-credentials h3) { font-size: 15px; }
+  .demo-login :is(p,.demo-disclosure) { font-size: 16px; }
+  .demo-login :is(small,.demo-role-options small,.demo-credentials p,.demo-credentials code) { font-size: 14px; }
+  .demo-login .demo-password-label button { min-height: 44px; font-size: 15px; }
+  .demo-login .demo-role-options label.selected { background: var(--accent-soft); border-color: var(--accent); }
+  .demo-login .demo-role-options { gap: 12px; }
+  .demo-login .demo-role-options label { padding: 14px; }
+  .demo-login .demo-disclosure { border-color: var(--accent); }
+  .demo-login .primary { background: var(--accent); border-color: var(--accent); }
+  .demo-login input { accent-color: var(--accent); }
+}
+
+@media screen and (hover:hover) {
+  .app-shell button:hover:not(:disabled) { background: var(--accent-soft); border-color: var(--accent-line); }
+  .app-shell :is(button.primary,.button.primary,.ai-button):hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
+  .app-shell button.destructive:hover:not(:disabled) { background: #f8e5e1; border-color: var(--danger); }
+  .app-shell .journey-rail :is(.tabs button,.demo-identity button,.back-link,.rail-next button,.dashboard-sidebar nav a,.dashboard-sidebar nav button):hover:not(:disabled) { background: var(--rail-hover); border-color: var(--rail-line); color: white; }
+  .app-shell .dashboard-sidebar nav :is(a,button):hover { background: var(--rail-hover); border-color: var(--rail-line); color: white; }
+}
+@media screen and (min-width:1024px) and (max-height:800px) {
+  .journey-rail .rail-next { padding-block: 8px; }
+}
+@media screen and (min-width:768px) and (max-width:1199px) {
+  .review-grid { grid-template-columns: minmax(0,1fr) 250px; gap: 20px; }
+  .overview-layout { grid-template-columns: minmax(0,1fr) 260px; gap: 20px; }
+  .progress-row { grid-template-columns: minmax(0,.8fr) minmax(0,1fr); }
+  .progress-row > button { grid-column: 2; justify-self: start; }
+}
+@media screen and (max-width:1023px) {
+  .journey-layout { display: block; }
+  .journey-rail:not(.dashboard-sidebar) {
+    display: block; position: static; height: auto; min-height: 0; max-height: none;
+    overflow: visible; padding: 8px var(--gutter) 12px; border-bottom: 1px solid var(--rail-line);
+  }
+  .journey-rail .tabs { flex-direction: row; overflow-x: auto; overflow-y: hidden; scrollbar-gutter: auto; gap: 6px; padding: 4px 0 8px; }
+  .journey-rail .rail-content { overflow: visible; scrollbar-gutter: auto; padding: 0; margin: 0; }
+  .journey-rail .tabs button { max-width: 220px; white-space: normal; padding: 9px 12px; min-height: 46px; }
+  .journey-rail .nav-state { font-size: 13px; max-width: 175px; }
+  .journey-rail .rail-caption,.journey-rail .rail-next { display: none; }
+  .journey-rail .back-link { margin-bottom: 0; }
+  .journey-rail:not(.dashboard-sidebar) .demo-identity { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; padding: 10px 0 0; margin: 0; }
+  .journey-rail:not(.dashboard-sidebar) .demo-identity > p { margin: 0; }
+  .journey-rail:not(.dashboard-sidebar) .demo-identity > div { margin-left: auto; }
+  .journey-rail:not(.dashboard-sidebar) .demo-identity span { display: none; }
+  .journey-rail .demo-identity > strong { font-size: 15px; }
+  .dashboard-layout .dashboard-sidebar { display: grid; grid-template-columns: 1fr 1fr; position: static; height: auto; min-height: 0; max-height: none; gap: 12px 20px; padding: 16px var(--gutter); }
+  .dashboard-sidebar .demo-identity { margin: 0; padding: 0 0 0 20px; border-top: 0; border-left: 1px solid var(--rail-line); }
+  .dashboard-sidebar nav { gap: 4px; }
+  .journey-main { padding-top: 20px; }
+  #main-content,.completed-receipt,.cancellation-result { scroll-margin-top: calc(var(--app-header-height,96px) + 16px); }
+  .source-layout { grid-template-columns: minmax(240px,.85fr) minmax(0,1.15fr); gap: 20px; }
+  .overview-layout .financial-ledger { position: static; }
+}
+@media screen and (max-width:767px) {
+  .app-shell { --gutter: 20px; }
+  .app-header.private-header { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 6px 14px; padding: 10px 20px; }
+  .private-header .wordmark { grid-column: 1; grid-row: 1; }
+  .private-header .header-role { grid-column: 2; grid-row: 1; margin: 0; font-size: 14px; }
+  .private-header .global-nav { grid-column: 1; grid-row: 2; margin: 0; gap: 14px; align-self: start; }
+  .app-header .global-nav a { font-size: 14px; min-height: 40px; padding-block: 8px; }
+  .app-header .environment-label { grid-column: 2; grid-row: 2; max-width: 180px; font-size: 12px; text-align: right; }
+  .app-header .environment-label small { font-size: 12px; }
+  .app-shell .wordmark { font-size: 22px; }
+  .app-header.public-header { gap: 12px; padding-inline: 20px; }
+  .public-header .global-nav { gap: 12px; }
+  .app-shell .public-header .login-entry { font-size: 15px; padding: 10px 14px; }
+  .journey-rail:not(.dashboard-sidebar) .demo-identity { gap: 6px 12px; }
+  .journey-rail:not(.dashboard-sidebar) .demo-identity > p { display: none; }
+  .journey-rail:not(.dashboard-sidebar) .demo-identity > div { margin-left: auto; }
+  .journey-rail .nav-state { display: none; }
+  .journey-rail .tabs button { font-size: 15px; min-height: 46px; }
+  .dashboard-layout .dashboard-sidebar { grid-template-columns: 1fr; gap: 8px; padding: 12px 20px; }
+  .dashboard-sidebar nav { display: flex; flex-wrap: wrap; gap: 8px; }
+  .dashboard-sidebar .demo-identity { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 3px 12px; border-left: 0; border-top: 1px solid var(--rail-line); padding: 10px 0 0; }
+  .dashboard-sidebar .demo-identity > strong { grid-column: 1; }
+  .dashboard-sidebar .demo-identity > p { grid-column: 1; margin: 0; }
+  .dashboard-sidebar .demo-identity > p span { display: none; }
+  .dashboard-sidebar .demo-identity > div { grid-column: 2; grid-row: 1/3; }
+  .workspace-view-switch { gap: 12px; }
+  .workspace-view-switch [role=group] { gap: 8px; }
+  .workspace-view-switch button { flex: 1 1 0; }
+  .journey-main { padding: 20px; }
+  .page-heading,.booking-heading { display: block; }
+  .page-heading > button { margin-top: 16px; }
+  .app-shell .booking-heading h1 { font-size: 29px; }
+  .booking-heading .perspective-label { margin-top: 8px; }
+  .overview-layout,.review-grid,.review-controls,.source-layout,.checkout-approval,.cancellation-flow.has-result,.policy-selection { display: grid; grid-template-columns: minmax(0,1fr); gap: 20px; }
+  .financial-ledger { display: none; }
+  .mobile-total { font-size: 17px; }
+  .next-action { padding: 18px; }
+  .next-action h2 { font-size: 27px; }
+  .task-intro { grid-template-columns: minmax(0,1fr); gap: 6px; padding: 14px; }
+  .task-intro .ownership-label { display: block; }
+  .app-shell .task-intro strong { font-size: 17px; }
+  .toolbar { flex-wrap: wrap; gap: 12px; }
+  .toolbar > button { margin-left: 0; }
+  .app-shell .toolbar p { display: block; font-size: 15px; }
+  .app-shell .progress-row { grid-template-columns: minmax(0,1fr) minmax(0,1.2fr); gap: 8px 12px; }
+  .progress-row > button { grid-column: 2; justify-self: start; }
+  .bookings-table th,.bookings-table td { padding: 8px 0; }
+  .data-table td[data-label]::before,.data-table th[data-label]::before { font-size: 14px; }
+  .app-shell .bookings-table h2 { font-size: 20px; }
+  .app-shell .bookings-table p { font-size: 15px; }
+  .app-shell .bookings-table .row-action { min-height: 46px; font-size: 16px; }
+  .conditions { padding-inline: 16px; }
+  .term-table .quantity-col { width: 5rem; }
+  .term-table .amount-col { width: 8rem; }
+  .term-table .evidence-col { width: 7rem; }
+  .app-shell .term-table .evidence-link { font-size: 15px; }
+  .app-shell .summary-evidence { width: auto; }
+  .agreement-group .term-summary .summary-line { grid-template-columns: minmax(0,1fr); gap: 6px; }
+  .comparison-columns,.correction-context { grid-template-columns: minmax(0,1fr); gap: 16px; }
+  .prototype-switch > [role=group] { width: 100%; }
+  .prototype-switch button { flex: 1 1 0; }
+  .policy-status { border-left: 0; padding-left: 0; }
+  .completed-receipt { padding: 20px; }
+  .receipt-header,.receipt-heading { flex-wrap: wrap; }
+  .receipt-columns,.receipt-rules dl { grid-template-columns: minmax(0,1fr); gap: 20px; }
+  .receipt-reference dd { min-width: 0; }
+  .receipt-reference code { min-width: 0; }
+  .receipt-seal { align-items: start; }
+  .app-shell .receipt-booking { font-size: 23px; }
+  .app-shell .copy-reference { padding: 8px 10px; }
+  .app-shell .example-terms h2 { font-size: 17px; }
+  .example-terms { gap: 0; }
+  .example-terms > section,.example-terms > section + section { padding-inline: 10px; }
+  .illustrated-agreement { padding: 16px; }
+  .entry-copy h1 { max-width: 12ch; }
+  .app-shell .entry-copy h1 { font-size: clamp(42px,11vw,58px); }
+  .demo-login { padding: 20px; }
+  .demo-role-options label { align-items: start; }
+  .app-footer { flex-wrap: wrap; }
+}
+@media screen and (max-width:359px) {
+  .app-header.private-header { grid-template-columns: minmax(0,1fr) auto; padding-inline: 16px; }
+  .private-header .header-role { grid-column: 2; grid-row: 1; font-size: 13px; }
+  .private-header .global-nav { grid-column: 1/-1; grid-row: 2; }
+  .app-header .environment-label { grid-column: 1/-1; grid-row: 3; display: flex; align-items: center; justify-content: space-between; gap: 8px; text-align: left; max-width: none; }
+  .app-header .environment-label small { font-size: 11px; }
+  .dashboard-sidebar .demo-identity { grid-template-columns: minmax(0,1fr); }
+  .dashboard-sidebar .demo-identity > div { grid-column: 1; grid-row: auto; }
+  .demo-role-options { grid-template-columns: minmax(0,1fr); }
+}
+[data-workspace] .blocker-list { padding-inline-start: 1.25rem; }
+[data-workspace] .blocker-list li { padding-block: .65rem; overflow-wrap: anywhere; }
+[data-workspace] .blocker-list li + li { border-top: 1px solid var(--line, #d9ded8); }
+[data-workspace] .blocker-list li p { margin: 0 0 .25rem; }
+[data-workspace] .blocker-list li small { display: block; }
+[data-workspace] .blocker-list .resolve-link { display: block; margin-top: .35rem; text-align: left; white-space: normal; }
+
+[data-workspace] :is(.policy-consistency,.rule-workbench,.buyer-comparison) { scroll-margin-top: var(--workspace-offset, 100px); }

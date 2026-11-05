@@ -1,0 +1,25 @@
+{
+  "dataset_version": 2,
+  "dataset_file": "policy_cases.v2.json",
+  "dataset_name": "BeforePay synthetic policy evaluation v2",
+  "schema_version": 1,
+  "case_count": 20,
+  "status": "frozen_for_evaluation_not_live_authorization",
+  "frozen_on": "2026-11-04",
+  "dataset_sha256": "9d1b1ab80ed60ba99e1ad20eb794af99e106922a90874b603a3e16fe8adb5e59",
+  "file_sha256": "63cb5bc9f010ee942aea4f17dc22c08541251b43cd545ea18fae86ebd29d2777",
+  "revised_case_ids": [
+    "cmp-04",
+    "cmp-05",
+    "cmp-06",
+    "cmp-08",
+    "con-08"
+  ],
+  "model_excluded_case_ids": [
+    "cmp-07",
+    "con-07"
+  ],
+  "planned_provider_calls": 18,
+  "scoring_revision": "model-only-denominators-v2",
+  "review_basis": "Frozen after explicit user-requested scope and label clarification; not independent expert validation or authorisation for live calls."
+}

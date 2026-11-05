@@ -1,0 +1,12 @@
+.env
+.env.*
+.venv
+tests
+evaluations
+__pycache__
+**/__pycache__
+.pytest_cache
+.ruff_cache
+uploads
+storage
+*.log

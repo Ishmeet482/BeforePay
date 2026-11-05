@@ -1,0 +1,18 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "fastapi",
+  "installCommand": "uv sync --frozen --no-dev",
+  "functions": {"app/main.py": {
+    "maxDuration": 90,
+    "excludeFiles": "{.env,.env.*,.venv/**,tests/**,evaluations/**,scripts/**,alembic/**,__pycache__/**,**/__pycache__/**,.pytest_cache/**,.ruff_cache/**,uploads/**,storage/**}"
+  }},
+  "env": {
+    "PUBLIC_DEMO_MODE": "true",
+    "DEMO_COOKIE_SECURE": "true",
+    "DEMO_AI_CALLS_PER_DAY": "0",
+    "DEMO_AI_TOKENS_PER_DAY": "0",
+    "DEMO_AI_TOKENS_PER_MINUTE": "0",
+    "PAYPAL_SANDBOX_ENABLED": "false",
+    "PUBLIC_WEBHOOKS_ENABLED": "false"
+  }
+}
