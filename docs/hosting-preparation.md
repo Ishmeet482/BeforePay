@@ -18,6 +18,14 @@ Two projects from the same repository: frontend root `frontend/`, backend root
   Native FastAPI support and Python 3.14 are documented by
   [Vercel](https://vercel.com/docs/frameworks/backend/fastapi) and its
   [Python runtime](https://vercel.com/docs/functions/runtimes/python).
+- `backend/.python-version` selects `3.14`, matching the project/lockfile minor
+  range. It intentionally does not pin `3.14.1`: Vercel supplies its own 3.14
+  patch interpreter, and an exact unavailable patch makes uv discovery fail.
+  `uv sync --frozen --no-dev` and the dependency lockfile remain unchanged.
+  Isolated Linux verification on 2026-11-06 reproduced the old discovery failure
+  on supplied Python 3.14.10, then passed frozen production installation, runtime
+  imports and an offline repeat dry-run with the minor pin. Actual Vercel rebuild
+  remains to be checked; no environment-variable or dependency changes were needed.
 - Backend `.vercelignore` and function `excludeFiles` omit environment files,
   virtualenv, tests, evaluation/pilot artifacts, uploads, temporary storage and
   operator scripts. Migrations/setup are operator commands, never runtime startup

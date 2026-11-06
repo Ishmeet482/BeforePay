@@ -183,7 +183,8 @@ Some package names, API service identifiers and database/migration symbols retai
 
 - Git; Node.js satisfying `^20.19.0 || >=22.12.0`, with npm. Node 22.x is the
   prepared Vercel choice; local `.nvmrc` retains tested Node 20.20.2.
-- Python **3.14.x** (`>=3.14,<3.15`) and `uv`; `.python-version` pins 3.14.1.
+- Python **3.14.x** (`>=3.14,<3.15`) and `uv`; `.python-version` selects 3.14
+  without requiring a particular patch release.
 - Docker Engine/Desktop with Compose, or existing PostgreSQL. Compose uses 17;
   dedicated Neon preparation was verified on 18.
 - Chrome/Chromium remote debugging for optional mocked browser suites.
