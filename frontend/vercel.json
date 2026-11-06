@@ -4,10 +4,29 @@
   "installCommand": "npm ci",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "headers": [{"source": "/api/:path*", "headers": [
-    {"key": "Cache-Control", "value": "private, no-store"},
-    {"key": "X-Vercel-Enable-Rewrite-Caching", "value": "0"},
-    {"key": "Vary", "value": "Cookie, Origin"}
-  ]}],
-  "rewrites": [{"source": "/api/:path*", "destination": "https://backend-not-configured.invalid/api/:path*"}]
+  "headers": [
+    {
+      "source": "/api/:path*",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "private, no-store"
+        },
+        {
+          "key": "X-Vercel-Enable-Rewrite-Caching",
+          "value": "0"
+        },
+        {
+          "key": "Vary",
+          "value": "Cookie, Origin"
+        }
+      ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://before-pay-three.vercel.app/api/:path*"
+    }
+  ]
 }
