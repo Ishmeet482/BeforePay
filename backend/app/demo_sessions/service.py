@@ -100,6 +100,9 @@ def owned_session(request: Request, session: Annotated[Session, Depends(get_sess
     if request.method not in SAFE:
         check_csrf(request, token)
     session.info["demo_session_id"] = record.id
+    # Server-derived lock mode, never a caller-supplied role or approval flag.
+    # Shared reads still exclude agreement/payment mutations for their lifetime.
+    session.info["booking_read_only"] = request.method in SAFE
     # Gate before endpoint logic, provider calls or PDF extraction. FastAPI may
     # already have parsed bounded JSON/multipart bodies while resolving inputs.
     booking_id = request.path_params.get("booking_id")

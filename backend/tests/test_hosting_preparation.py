@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from urllib.parse import urlsplit
 from uuid import uuid4
 
 import httpx
@@ -291,12 +292,15 @@ def test_vercel_configs_and_no_api_spa_fallback():
     assert backend["functions"]["app/main.py"]["maxDuration"] == 90
     assert backend["env"]["DEMO_AI_CALLS_PER_DAY"] == "0"
     assert backend["env"]["PUBLIC_WEBHOOKS_ENABLED"] == "false"
-    assert frontend["rewrites"] == [
-        {
-            "source": "/api/:path*",
-            "destination": "https://backend-not-configured.invalid/api/:path*",
-        }
-    ]
+    # prepare_vercel.py replaces the initial placeholder with an approved origin.
+    assert len(frontend["rewrites"]) == 1
+    rewrite = frontend["rewrites"][0]
+    assert rewrite["source"] == "/api/:path*"
+    destination = urlsplit(rewrite["destination"])
+    assert destination.scheme == "https" and destination.hostname
+    assert destination.path == "/api/:path*"
+    assert not destination.username and not destination.password
+    assert not destination.query and not destination.fragment
     assert "no-store" in frontend["headers"][0]["headers"][0]["value"]
 
 

@@ -16,8 +16,9 @@ Revision remains `0015_demo_templates`. Migration and table ownership stays with
 | Sequences | None. Both existing sequences belong to operator-managed singleton tables, which runtime cannot insert into. Application identifiers use UUIDs. |
 | Application functions | No explicit EXECUTE grants. Existing five functions are invoker-mode trigger functions; trigger execution needs no runtime direct-call grant. |
 
-The booking column UPDATE grant is needed by the existing SQLAlchemy
-`SELECT ... FOR UPDATE` booking lock. The enabled ownership trigger rejects actual
+The booking column UPDATE grant is needed by SQLAlchemy booking row locks:
+`FOR SHARE` for safe HTTP reads and `FOR UPDATE` for mutations/internal callers.
+The enabled ownership trigger rejects actual
 changes to `owner_session_id`; runtime cannot update the booking title or other
 columns. No trigger was changed or disabled.
 

@@ -95,6 +95,40 @@ or real Buyer/Merchant roles were added.
 
 ## Database pooling and bounded work
 
+### Parallel saved-state read locks — 2026-11-06
+
+The hosted overview traceback reported `sqlalchemy.exc.OperationalError` wrapping
+`psycopg.errors.LockNotAvailable` (`55P03`, lock timeout) in
+`checkout/attempts → lock_booking`. Buyer/Merchant overview share six parallel
+saved-state GETs; previously each held an exclusive booking `FOR UPDATE` lock
+until its request session closed. Uncontended local reads passed, so the grants
+alone did not reveal the failure. A controlled disposable-PostgreSQL regression
+held one reader open and reproduced that exact exception in the other GETs under
+the restricted runtime grants.
+
+The authenticated ownership dependency now marks safe HTTP requests internally;
+their common/nested booking locks use `FOR SHARE`. Readers can coexist while still
+excluding mutations for the transaction lifetime. Unsafe requests and internal/
+webhook callers default to `FOR UPDATE`. No lock is removed, no timeout increased
+and no automatic retry added. Ownership, CSRF and payment restrictions remain.
+The existing column UPDATE grant supports both lock modes; **no grant or migration
+change is required**.
+
+Focused regressions exercise all six routes with the restricted role, a held reader
+with five parallel GETs, writer exclusion in both directions, foreign-session
+rejection and public payment denial. Provider calls are mocked/blocked and only
+disposable local PostgreSQL is mutated. Hosted recovery requires checking a new
+deployment; no hosted data/configuration was changed by this fix.
+
+Verification: the focused regression selection completed **204 distinct
+checks** across the initial run and the two corrected configuration checks; five
+restricted-role/concurrency cases were also rerun after final assertions. Ruff
+lint/format and diff whitespace checks passed. The initial run passed 202 tests
+then stopped at an obsolete `.invalid` rewrite assertion left from before the
+authorised backend-origin preparation. That test now verifies HTTPS `/api` routing
+without hard-coding an obsolete host. Six existing dependency warnings remain.
+No full-suite or deployed recovery result is claimed.
+
 Use the managed provider's pooled TLS endpoint for runtime and a **direct admin/
 migration endpoint** for operator setup. There are two bounded SQLAlchemy pools
 inside the same monolith: ordinary requests default to two connections; durable

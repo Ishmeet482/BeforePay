@@ -24,7 +24,9 @@ def require_booking(session: Session, booking_id: UUID) -> Booking:
 
 def lock_booking(session: Session, booking_id: UUID) -> Booking:
     booking = session.scalar(
-        select(Booking).where(Booking.id == booking_id).with_for_update()
+        select(Booking)
+        .where(Booking.id == booking_id)
+        .with_for_update(read=session.info.get("booking_read_only") is True)
     )
     owner = current_owner(session)
     if booking is None or (owner is not None and booking.owner_session_id != owner):
