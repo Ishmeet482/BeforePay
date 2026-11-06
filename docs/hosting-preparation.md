@@ -72,6 +72,7 @@ variables in the host's secret/configuration store after authorisation:
 | `PUBLIC_DEMO_MODE` | `true`; Vercel's injected `VERCEL=1` rejects local mode. Never disable the injected indicator to bypass checks. |
 | `DEMO_ALLOWED_ORIGINS` | JSON list of exact real HTTPS frontend origins. No localhost HTTP, wildcards or blanket preview domain. |
 | `DEMO_COOKIE_SECURE` | `true`. |
+| `DEMO_SESSION_TTL_SECONDS` | `2592000` for newly issued 30-day persistent sessions; existing stored expiries are unchanged. Role switching/revisits do not slide expiry. |
 | `DEMO_AI_CALLS_PER_DAY`, `DEMO_AI_TOKENS_PER_DAY`, `DEMO_AI_TOKENS_PER_MINUTE` | All **0**. Hosted preparation rejects nonzero shared AI allowances. |
 | `GEMINI_API_KEY` | Absent/empty. Hosted preparation rejects an installed key. No fallback/model change. |
 | `PAYPAL_SANDBOX_ENABLED` | `false`; no PayPal client ID/secret installed. Public payment execution remains denied independently. |

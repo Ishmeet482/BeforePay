@@ -320,17 +320,25 @@ validated locally, never sent to the API or stored. The selected view is retaine
 for the tab; it grants no additional backend permissions.
 
 Explicit entry obtains a random server-issued session cookie. Only token hashes
-are stored; default absolute expiry is 45 minutes. Cookies are HttpOnly, host-only,
+are stored; default absolute expiry is 30 days. Cookies are HttpOnly, host-only,
 SameSite=Lax and Secure on HTTPS. Backend ownership checks protect booking lists,
 children, evidence and direct API access; mutations require exact Origin and
 applicable session-bound CSRF checks. Responses are private/no-store.
 
 Buyer/Merchant switching shares one session and saved versions. Same-origin tabs
-share cookies; use independent browser contexts to demonstrate isolation. Sign-out
+share cookies; the persistent cookie also survives normal browser restarts in the
+same profile/domain. Choose a demo role again if the tab's role label is gone;
+valid cookie reuse keeps saved bookings and does not extend expiry. Use independent
+browser contexts to demonstrate isolation. Sign-out
 revokes access; a new session cannot recover old bookings. No real-user
 authentication, authenticated merchant role or account recovery is implemented.
 Unsaved fields are retained during normal navigation or require a discard warning.
 [Session contract/limits](docs/demo-sessions.md).
+
+Existing sessions keep their stored expiry; changing configuration only affects
+new sessions. Cleared cookies, private browsing, different domains and explicit
+sign-out can end access earlier. No countdown, automatic renewal or expired-booking
+adoption is implemented.
 
 ## Synthetic data
 

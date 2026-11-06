@@ -19,7 +19,7 @@ const sessionFixture = String.raw`
  sessionStorage.removeItem('beforepay:demo-role');
  let active=false, generation=0;
  const base=window.fetch;window.__sessionCalls=[];window.__denySessions=false;window.__expireSession=()=>{active=false};window.__csrfSeen=[];
- const description=()=>({active:true,csrf_token:(generation%2?'a':'b').repeat(64),expires_at:new Date(Date.now()+2700000).toISOString()});
+ const description=()=>({active:true,csrf_token:(generation%2?'a':'b').repeat(64),expires_at:new Date(Date.now()+2592000000).toISOString()});
  const missing=()=>Response.json({detail:{code:'demo_session_required',message:'Demo session expired. Unsaved inputs are retained. Enter the demo explicitly.'}},{status:401});
  window.fetch=async(input,options={})=>{
   if(String(input)==='/api/demo-sessions'){
@@ -65,6 +65,9 @@ try {
  await evaluate(`document.querySelector('.booking-session .demo-identity button:first-child').click()`);await login('merchant')
  await until(`!document.querySelector('.demo-login')&&location.hash==='#merchant/bookings/b1'`)
  check(await evaluate(`window.__sessionCalls.filter(c=>c.method==='POST').length===2&&window.__writes.length===1`),'role switching retains same server session, booking and saved actions')
+ await evaluate(`document.querySelector('.booking-session .demo-identity button:first-child').click()`);await login('buyer')
+ await until(`!document.querySelector('.demo-login')&&location.hash==='#bookings/b1'`)
+ check(await evaluate(`window.__sessionCalls.filter(c=>c.method==='POST').length===2&&window.__writes.length===1`),'switching back to Buyer retains booking without replacing the session')
  await evaluate(`window.__expireSession();document.querySelector('.workspace-host:not([hidden]) .toolbar > button')?.click();window.dispatchEvent(new Event('contextkey:changed'))`)
  await until(`document.body.innerText.includes('Demo session expired')`)
  check(await evaluate(`window.__sessionCalls.filter(c=>c.method==='POST').length===2&&window.__writes.length===1`),'expired API requests never create sessions or retry writes automatically')

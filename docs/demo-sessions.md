@@ -1,5 +1,33 @@
 # Isolated demo sessions — Phase 1
 
+**Current lifetime update — 2026-11-06:** newly issued sessions default to an
+absolute **30 days** (`DEMO_SESSION_TTL_SECONDS=2592000`), with a configurable range
+of 60–2592000 seconds. The earlier 45-minute default is historical. Existing
+database rows keep their stored expiry; no expired session or booking is adopted,
+reassigned or extended by this change. No migration is needed. Hosting variables
+must be updated separately if they still override the default with 2700.
+
+Persistent cookie `Max-Age` and `Expires` already existed. A normal browser restart
+or revisit on the same profile and exact frontend origin can reuse that cookie.
+Tab-only role identity may disappear: explicit Buyer/Merchant demo entry reuses
+the valid server session without replacing it, changing ownership or extending
+expiry. There is no countdown. Sign-out revokes the server session and clears its
+cookie; cookie deletion, private browsing and a different domain/profile do not
+recover the original workspace. Review/approval/payment safeguards are unchanged.
+
+Global and per-session admission/storage/write/AI caps retain their existing
+values and accounting; a 30-day session does not renew allowances. No global
+booking listing, new authentication or recovery endpoint was added.
+
+Focused verification: **116 backend checks passed**, including persistent cookie
+attributes, restoring a cookie into a new client against a 20-day-old synthetic
+session, unchanged owner/expiry on Buyer→Merchant→Buyer reuse, sign-out/replay
+denial, foreign-session isolation and existing resource/payment controls. All
+database fixtures were disposable; provider calls were mocked/blocked. The mocked
+Chromium lifecycle suite passed **12 assertions**, including switching back to
+Buyer without another session POST or booking write. Ruff and whitespace checks
+passed. This does not claim a real 30-day elapsed or hosted browser-restart test.
+
 Later update: [Phase 2](public-demo-controls.md) now adds durable resource/AI limits
 and public payment denial. Its controls supersede the corresponding outstanding
 items in this Phase 1 report; hosted verification is still pending.
@@ -20,7 +48,7 @@ Editing the role label cannot expand access to another session.
 `POST /api/demo-sessions` issues a cryptographically random 32-byte token
 (`secrets.token_urlsafe(32)`). PostgreSQL stores only its SHA-256 hash, creation
 time, absolute expiry and optional revocation time. The cookie is host-only,
-`HttpOnly; Secure; SameSite=Lax; Path=/api`, with a 45-minute lifetime by default.
+`HttpOnly; Secure; SameSite=Lax; Path=/api`, with a 30-day lifetime by default.
 No token, password or CSRF token is logged or stored in browser storage. The
 frontend retains its provisional role label in tab sessionStorage and the CSRF
 token in memory. Browser cookies are shared across tabs on the same origin;
@@ -93,7 +121,8 @@ uv run --frozen alembic upgrade head
 uv run --frozen alembic current
 ```
 
-Expected head: `0013_demo_sessions`. **Not run on development in this task.**
+Current repository head: `0015_demo_templates`; Phase 1 introduced
+`0013_demo_sessions`. **Not run on development by this documentation update.**
 Restart backend after that authorized migration and session configuration; rebuild
 or reload frontend for the session-aware client. Until migration, new code needs
 the missing table/column and is not runtime-ready against the old schema. Existing
@@ -103,7 +132,7 @@ Backend configuration (placeholder defaults in `.env.example`, actual `.env`
 untouched):
 
 ```text
-DEMO_SESSION_TTL_SECONDS=2700
+DEMO_SESSION_TTL_SECONDS=2592000
 DEMO_COOKIE_SECURE=true
 DEMO_ALLOWED_ORIGINS=["https://YOUR-FRONTEND-HOST"]
 ```
@@ -121,6 +150,20 @@ same booking/version is visible. A separate private browser context starts with
 an empty list and cannot open the first context's booking URL. Sign-out or expiry
 ends access; this is an intentionally disposable workspace, not a recoverable
 account. Avoid real customer evidence.
+
+## Recovery of an original expired synthetic booking
+
+Changing the TTL cannot recover an already expired owner cookie. Passwords are
+public demo labels, not proof of ownership, and token hashes cannot reconstruct
+the original cookie. Keep that booking and its immutable ownership/history intact.
+
+The existing safe workflow is to explicitly create a new session-owned synthetic
+booking from the authored source templates; do not copy approvals or receipts or
+claim the new record is the original. Access to the exact original record would
+require separately authorised, narrowly scoped operator-assisted recovery of its
+original owner session, with a new secret cookie and preserved resource charges.
+That recovery flow is not implemented and was not performed. It must not be exposed
+as a public Buyer/Merchant-login capability or an automatic reassignment.
 
 ## Verification and public release blockers
 

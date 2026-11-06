@@ -2,6 +2,7 @@
 
 import re
 from contextlib import contextmanager
+from copy import copy
 from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
@@ -72,7 +73,7 @@ def test_cookie_hash_ttl_and_role_switch_reuse(api, postgres_engine):
             "revoked_at",
         }
         assert row.token_hash != token
-        assert 2690 < (row.expires_at - row.created_at).total_seconds() < 2710
+        assert 2_591_990 < (row.expires_at - row.created_at).total_seconds() < 2_592_010
     first = api.get("/api/demo-sessions").json()
     again = api.post(
         "/api/demo-sessions",
@@ -93,10 +94,66 @@ def test_cookie_hash_ttl_and_role_switch_reuse(api, postgres_engine):
             "secure",
             "samesite=lax",
             "path=/api",
-            "max-age=2700",
+            "max-age=2592000",
         ):
             assert expected in cookie
         assert "domain=" not in cookie
+
+
+def test_persistent_cookie_revisit_keeps_booking_and_signout_revokes(
+    api, postgres_engine
+):
+    booking = create(api)
+    # A restarted browser restores its persistent cookie, not JS role/CSRF state.
+    persisted = [copy(cookie) for cookie in api.cookies.jar]
+    assert all(not cookie.discard and cookie.expires for cookie in persisted)
+    with Session(postgres_engine) as session:
+        row = session.scalar(
+            select(DemoSession).where(
+                DemoSession.token_hash == token_hash(api.cookies[COOKIE])
+            )
+        )
+        row.created_at = datetime.now(UTC) - timedelta(days=20)
+        row.expires_at = datetime.now(UTC) + timedelta(days=10)
+        session.commit()
+        ident, expiry = row.id, row.expires_at
+        original_count = session.scalar(select(func.count()).select_from(DemoSession))
+    with visitor() as reopened:
+        for cookie in persisted:
+            reopened.cookies.jar.set_cookie(cookie)
+        description = reopened.get("/api/demo-sessions")
+        assert description.status_code == 200
+        assert [b["id"] for b in reopened.get("/api/bookings").json()] == [booking]
+        for role in ("buyer", "merchant", "buyer"):
+            reused = reopened.post("/api/demo-sessions", json={"role": role})
+            assert reused.status_code == 200
+            assert "set-cookie" not in reused.headers
+            assert reused.json()["expires_at"] == description.json()["expires_at"]
+            assert [b["id"] for b in reopened.get("/api/bookings").json()] == [booking]
+        with Session(postgres_engine) as session:
+            assert session.get(DemoSession, ident).expires_at == expiry
+            assert (
+                session.scalar(select(func.count()).select_from(DemoSession))
+                == original_count
+            )
+        reopened.headers["X-BeforePay-CSRF"] = description.json()["csrf_token"]
+        assert reopened.delete("/api/demo-sessions").status_code == 204
+    # Even the original browser's saved cookie is invalid after explicit sign-out.
+    assert api.get("/api/bookings").status_code == 401
+    with visitor() as fresh:
+        assert fresh.post("/api/demo-sessions").status_code == 201
+        assert fresh.get("/api/bookings").json() == []
+        assert fresh.get(f"/api/bookings/{booking}").status_code == 404
+    with Session(postgres_engine) as session:
+        assert session.get(Booking, UUID(booking)) is not None
+
+
+def test_session_lifetime_configuration_is_bounded():
+    assert Settings(_env_file=None).demo_session_ttl_seconds == 30 * 24 * 60 * 60
+    assert Settings(_env_file=None, demo_session_ttl_seconds=2700)
+    for value in (59, 2_592_001):
+        with pytest.raises(ValidationError):
+            Settings(_env_file=None, demo_session_ttl_seconds=value)
 
 
 @pytest.mark.parametrize("token", [None, "invented", "a" * 43, "é" * 43])

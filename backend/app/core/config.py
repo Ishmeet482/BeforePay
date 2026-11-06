@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     paypal_sandbox_client_secret: SecretStr | None = None
     paypal_sandbox_merchant_id: str = ""
     paypal_sandbox_webhook_id: str = ""
-    demo_session_ttl_seconds: int = Field(default=2700, ge=60, le=86400)
+    demo_session_ttl_seconds: int = Field(default=2_592_000, ge=60, le=2_592_000)
     demo_cookie_secure: bool = True
     public_demo_mode: bool = False
     vercel: bool = False
