@@ -2,6 +2,7 @@ from fastapi import HTTPException
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
+from app.hosting.diagnostics import log_database_failure
 from app.hosting.templates import TEMPLATE_DIGEST, TEMPLATES
 
 REVISION = "0015_demo_templates"
@@ -18,14 +19,18 @@ TRIGGERS = {
 def require_public_database(session, settings):
     if not settings.public_demo_mode:
         return
+    check = "database_identity"
     try:
         name = session.scalar(text("SELECT current_database()"))
+        check = "migration_revision"
         revision = session.scalar(text("SELECT version_num FROM alembic_version"))
+        check = "deployment_marker"
         marker = session.execute(
             text(
                 "SELECT database_name, template_digest FROM demo_deployment WHERE id=1"
             )
         ).one_or_none()
+        check = "immutable_triggers"
         triggers = set(
             session.scalars(
                 text(
@@ -34,9 +39,11 @@ def require_public_database(session, settings):
                 )
             )
         )
+        check = "admission_control"
         control = session.scalar(
             text("SELECT count(*) FROM demo_admission_control WHERE id=1")
         )
+        check = "ownership_column"
         owner_column = session.scalar(
             text(
                 "SELECT count(*) FROM information_schema.columns "
@@ -44,6 +51,7 @@ def require_public_database(session, settings):
                 "AND column_name='owner_session_id'"
             )
         )
+        check = "template_catalogue"
         catalogue = session.execute(
             text("SELECT key, version, content, fingerprint FROM demo_templates")
         ).all()
@@ -61,6 +69,7 @@ def require_public_database(session, settings):
         )
         safe_role = True
         if settings.vercel:
+            check = "runtime_privileges"
             safe_role = session.scalar(
                 text("""
                 SELECT NOT (rolsuper OR rolbypassrls OR rolcreatedb OR rolcreaterole)
@@ -74,19 +83,25 @@ def require_public_database(session, settings):
                 FROM pg_roles WHERE rolname=current_user
             """)
             )
-        if (
-            name == settings.public_demo_database
-            and revision == REVISION
-            and marker is not None
-            and tuple(marker) == (name, TEMPLATE_DIGEST)
-            and TRIGGERS <= triggers
-            and control == 1
-            and owner_column == 1
-            and safe_role
-            and catalogue_valid
-        ):
+        checks = {
+            "database_identity": name == settings.public_demo_database,
+            "migration_revision": revision == REVISION,
+            "deployment_marker": marker is not None
+            and tuple(marker) == (name, TEMPLATE_DIGEST),
+            "immutable_triggers": TRIGGERS <= triggers,
+            "admission_control": control == 1,
+            "ownership_column": owner_column == 1,
+            "runtime_privileges": bool(safe_role),
+            "template_catalogue": catalogue_valid,
+        }
+        if all(checks.values()):
             return
-    except SQLAlchemyError:
+        log_database_failure(
+            "invariants",
+            failed_checks=[key for key, valid in checks.items() if not valid],
+        )
+    except SQLAlchemyError as error:
+        log_database_failure(check, error=error)
         session.rollback()
     raise HTTPException(
         503,

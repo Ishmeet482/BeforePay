@@ -141,6 +141,60 @@ or real Buyer/Merchant roles were added.
 
 ## Database pooling and bounded work
 
+### Sanitised setup-failure diagnostics — 2026-11-07
+
+Intermittent hosted `public_setup_required` remains undiagnosed without a captured
+failure. Both original 503 responses and all fail-closed checks remain unchanged.
+The new warning event **`public_setup_failure`**, under logger
+`uvicorn.error.beforepay.hosting`, distinguishes:
+
+| Log fields | Meaning / next check |
+| --- | --- |
+| `boundary=settings_validation` | Pydantic rejected deployment settings before request processing. `fields` lists only recognised setting names; `model_validation=true` identifies a model-wide rejection without a field location. Inspect configuration privately; no values or validation prose are logged. |
+| `boundary=database_readiness`, `exception_type=PoolTimeout` | SQLAlchemy could not acquire a connection within the existing pool wait. `check` identifies the readiness stage awaiting a connection; this is not a failed migration or proof that raising the pool size is appropriate. |
+| `boundary=database_readiness`, `exception_type=OperationalError/ProgrammingError/DBAPIError` | A readiness database operation failed. `check` identifies its stage and `sqlstate` is allowlisted; unknown states become `OTHER`. No driver message, SQL or parameters are logged. |
+| `check=invariants`, nonempty `failed_checks` | Queries completed but named requirements failed: database identity, migration revision, deployment marker, immutable triggers, admission control, ownership column, template catalogue or runtime privileges. Observed database values are omitted. |
+
+Useful SQLSTATEs include `55P03` (lock timeout/unavailable), `57014` (query cancelled,
+including statement timeout), `42501` (insufficient privilege), `42P01` (undefined
+table), `42703` (undefined column), `28P01` (authentication failure), `08001/08006`
+(connection failures), and `53300` (connection capacity). A state identifies a
+class of failure, not its complete cause. Connection timeouts may have no SQLSTATE
+and appear as `OTHER`. Fixed exception categories avoid logging arbitrary class
+names or exception text. No traceback/exception object, request path/query, cookie,
+header, credentials, connection URL, source content or SQL parameters are attached
+to these diagnostic records.
+
+Hosted readiness executes seven sequential queries, plus the runtime-privilege
+query on Vercel, before endpoint processing. Its transaction normally retains a
+connection until request cleanup. Existing runtime defaults are pool size **2**,
+overflow **0**, pool acquisition **3 seconds**, connection establishment **3
+seconds**, statement timeout **5 seconds**, lock timeout **3 seconds**, recycle
+**300 seconds**, with pre-ping. The separate admission pool has size **1**, overflow
+**0** and the same configured acquisition wait. No timeouts, pools, locks, guards,
+retry behaviour or caching were changed by this diagnostic increment.
+
+A disposable-PostgreSQL test deliberately occupied both runtime slots: readiness
+returned the existing 503 and logged `PoolTimeout` at `database_identity`; a later
+independent check succeeded after release. This demonstrates one possible
+refresh-recovery mechanism, **not the cause of the reported hosted failures**.
+No automatic retry is introduced. On recurrence, locate the failing invocation
+in Vercel runtime logs by time and search for `public_setup_failure`; retain its
+safe JSON alongside the Network method, endpoint suffix, status and response
+message. Share neither complete environment dumps nor unrelated raw tracebacks.
+
+Focused offline verification: **44 distinct checks passed** across
+`tests/test_hosting_diagnostics.py`, `tests/test_hosting_preparation.py` and
+`tests/test_restricted_saved_state.py` (43 initially, followed by the added
+model-wide validation test alone). Run from `backend/` with
+`uv run --frozen --offline pytest -q -x --tb=short` and those three file paths.
+Tests cover fail-closed responses, no automatic retry, sanitised settings/SQL
+failures, real pool exhaustion/release, disabled protections and restricted-role
+concurrency/ownership. PostgreSQL was disposable and providers were blocked/mocked;
+six existing dependency warnings occurred per run. Ruff lint/format and diff
+whitespace checks passed. No hosted configuration, records or provider calls were
+used, and no new hosted-failure diagnosis is claimed.
+
 ### Parallel saved-state read locks — 2026-11-06
 
 The hosted overview traceback reported `sqlalchemy.exc.OperationalError` wrapping

@@ -2,6 +2,7 @@ from pydantic import ValidationError
 from starlette.responses import JSONResponse
 
 from app.core.config import get_settings
+from app.hosting.diagnostics import log_settings_failure
 
 
 class HostingBoundary:
@@ -13,7 +14,8 @@ class HostingBoundary:
             return await self.app(scope, receive, send)
         try:
             settings = get_settings()
-        except ValidationError:
+        except ValidationError as error:
+            log_settings_failure(error)
             return await JSONResponse(
                 {
                     "detail": {
