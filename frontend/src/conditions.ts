@@ -132,6 +132,7 @@ export function blockerText(code: string): string {
     if (code === `${band}_clause_not_supported_by_source_version`) return `Copy the supporting ${when} cancellation clause exactly from the source.`
     if (code === `${band}_deposit_refund_conflicts_with_nonrefundable_policy`) return `The ${when} refund returns a deposit described as non-refundable.`
     if (code === `${band}_refund_amount_or_precision_unsupported`) return `Check the ${when} refund amounts, percentages and cent precision.`
+    if (code === `${band}_refund_allocation_requires_clarification`) return `The ${when} clause states a total refund without allocating it to rental fee and deposit. Clarify the source terms before approving rules.`
     if (code === `${band}_full_refund_clause_conflicts_with_split`) return `The ${when} clause promises a full refund, but the component refunds do not match.`
     if (code === `${band}_no_refund_clause_conflicts_with_split`) return `The ${when} clause says no refund, but the rules return money.`
   }

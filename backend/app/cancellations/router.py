@@ -20,6 +20,7 @@ from app.cancellations.schemas import (
 )
 from app.cancellations.service import (
     latest_rule,
+    money_context,
     preview_one,
     read_rule,
     scoped_rule,
@@ -102,14 +103,29 @@ def propose_rules(
         for category, values in claims.items()
         if category in {"deposit_conditions", "cancellation_conditions"}
     }
+    amounts, basis_blockers = money_context(claims)
+    financial_basis = (
+        {"status": "needs_clarification", "blockers": basis_blockers}
+        if basis_blockers
+        else {
+            "currency": "USD",
+            "rental_fee": str(amounts["rental_total"]),
+            "deposit": str(amounts["deposit"]),
+            "inclusive_total": str(amounts["total_payable"]),
+        }
+    )
     if sum(len(c["value"]) for values in payload.values() for c in values) > 20000:
         raise HTTPException(413, "Rule proposal policy input exceeds 20,000 characters")
     session.rollback()
     result = run_ai(
         session,
         "rules",
-        {"binding": body.model_dump(mode="json"), "policies": payload},
-        lambda: proposer.compare([payload]),
+        {
+            "binding": body.model_dump(mode="json"),
+            "policies": payload,
+            "financial_basis": financial_basis,
+        },
+        lambda: proposer.compare([{**payload, "financial_basis": financial_basis}]),
         booking_id=booking_id,
     )
     rules = Rules.model_validate(result.output.model_dump())

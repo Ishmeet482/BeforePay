@@ -12,6 +12,51 @@ The [Merchant prototype workspace](buyer-merchant-workspaces.md) now exposes
 proposal-only rule preparation/review separately. Buyer cancellation retains the
 calculator and both-source review capability; these are not access permissions.
 
+## Component allocation correction — 2026-11-07
+
+Following the [user-reported hosted errors](demo.md#user-reported-hosted-walkthrough--2026-11-07),
+rule proposal prompt `cancellation-rule-proposal-v2` and schema descriptions now
+distinguish rental fee, deposit and inclusive total. The request includes only the
+saved, validated financial basis alongside the existing exact policy text; these
+charges are context, not AI-calculated refunds. Invalid/missing financial basis is
+sent as an explicit clarification state. Existing admission accounts for this
+context; provider limits, one-attempt behaviour and version rechecks remain.
+
+For USD 120 rental plus USD 80 deposit, an explicit full refund covering both may
+use `100` percent per component. USD 200 must never be copied into the rental-only
+amount. Existing component caps reject that allocation. No output is silently
+split, capped, repaired or approved: invalid proposals remain unchanged and blocked.
+Total-only partial refund clauses without component allocation now have a specific
+server blocker, even when a model incorrectly clears `needs_clarification` and its
+invented split fits within component caps. This applies to manual rules too.
+Clarify the saved policy through the existing versioned flow before reviewing rules.
+
+The added deterministic check recognises a narrow English-language case: a refund
+clause without rental/deposit references, excluding explicit universal full/no-refund
+wording. It is not general natural-language proof of an allocation. Complex scopes,
+exceptions and component-specific wording still require human review; exact
+substring citations alone do not prove semantic support. Uncertain source amounts,
+unsupported evidence, stale context and flagged uncertainty retain their blockers.
+
+Offline regressions use synthetic buyer/merchant cases based on the reported
+USD 200-as-USD 120 rental-component error, supported full refunds and unallocated
+USD 100/50-percent total refunds. They are not replays of preserved live outputs.
+No existing record or hosted configuration is changed, and no live prompt-quality
+improvement is claimed; the historical two errors and their live causes remain
+recorded separately.
+
+Verification for this change (offline, mocked providers, disposable PostgreSQL):
+
+- `cd backend && uv run --frozen --offline pytest -q -x --tb=short tests/test_cancellation_preview.py`: **43 passed**.
+- `uv run --frozen --offline pytest -q -x --tb=short tests/test_public_admission.py tests/test_public_payments.py`: **39 passed**.
+- `uv run --frozen --offline pytest -q -x --tb=short tests/test_paypal_sandbox.py`: **40 passed**.
+- Each backend run emitted six existing dependency warnings. Ruff lint/format
+  checks on the cancellation module and focused test passed.
+- `cd frontend && npm run build`: typecheck and production build passed on Node
+  22.23.1. Four offline checks of the new blocker explanations and source-specific
+  Buyer/Merchant destinations passed. No live browser or provider verification is
+  claimed. No migrations or hosted configuration changes are required by this fix.
+
 ## Browser steps
 
 Use the existing services on http://127.0.0.1:8000 and

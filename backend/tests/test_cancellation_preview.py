@@ -1,3 +1,4 @@
+import json
 from unittest.mock import MagicMock, Mock
 from uuid import UUID, uuid4
 
@@ -418,7 +419,106 @@ def test_ai_rules_are_proposals_only_and_transport_never_calculates_money(
         '"amounts"'
         not in client.models.generate_content.call_args.kwargs["contents"].parts[0].text
     )
+    payload = json.loads(
+        client.models.generate_content.call_args.kwargs["contents"].parts[0].text
+    )["policies"][0]
+    assert payload["financial_basis"] == {
+        "currency": "USD",
+        "rental_fee": "120.00",
+        "deposit": "80.00",
+        "inclusive_total": "200.00",
+    }
+    assert record["model_metadata"]["prompt_version"] == "cancellation-rule-proposal-v2"
+    config = client.models.generate_content.call_args.kwargs["config"]
+    assert "Never copy an inclusive USD 200 refund into rental_refund" in (
+        config.system_instruction
+    )
+    assert (
+        "rental fee ONLY"
+        in config.response_json_schema["properties"]["early"]["properties"][
+            "rental_refund"
+        ]["description"]
+    )
     client.models.generate_content.assert_called_once()
+
+
+@pytest.mark.parametrize("kind", ["agreement", "proposal"])
+@pytest.mark.parametrize(
+    "allocation", ["inclusive_as_rental", "full", "total_amount", "total_percent"]
+)
+def test_ai_component_allocation_is_never_repaired(api, context, kind, allocation):
+    """Synthetic regressions for reported buyer/merchant error, not live replays."""
+    r = rules()
+    early = EARLY
+    if allocation.startswith("total_"):
+        refund = "USD 100" if allocation == "total_amount" else "50 percent of total"
+        early = (
+            f"Cancellation at least 48 hours before pickup gives a refund of {refund}."
+        )
+        changes = [
+            {
+                "category": "cancellation_conditions",
+                "reason": "Synthetic unallocated total refund",
+                "items": [
+                    {"value": value, "ambiguous": False} for value in (early, LATE)
+                ],
+            }
+        ]
+        if kind == "agreement":
+            agreement = revise(api, context, changes).json()
+            assert confirm(api, context, agreement).status_code == 201
+            context = {**context, "agreement": agreement}
+        r["early"]["rental_refund"] = {"mode": "amount", "value": "100"}
+        r["early"]["deposit_refund"] = {"mode": "amount", "value": "0"}
+    elif allocation == "inclusive_as_rental":
+        r["early"]["rental_refund"] = {"mode": "amount", "value": "200"}
+    r["early"]["clause"] = early
+    proposal = None
+    if kind == "proposal":
+        data = content(context)
+        data["cancellation_conditions"] = [
+            {"value": value, "ambiguous": False} for value in (early, LATE)
+        ]
+        proposal = save(api, context, data).json()
+    fake = Mock()
+    fake.compare.return_value = PolicyResult(
+        Rules.model_validate(r), {"provider": "gemini", "mock": True}
+    )
+    app.dependency_overrides[get_rule_proposer] = lambda: fake
+    response = api.post(
+        f"/api/bookings/{context['booking']}/cancellation/rules/propose",
+        json={
+            "target": target(context, proposal),
+            "expected_latest_rule_id": None,
+            "customer_label": "Synthetic reviewer",
+        },
+    )
+    assert response.status_code == 201, response.text
+    record = response.json()
+    assert record["rules"] == Rules.model_validate(r).model_dump(mode="json")
+    assert not record["approved_current"]
+    assert record["rules"]["early"]["clause"] == early
+    assert record["rules"]["deposit_clause"] == DEPOSIT
+    assert preview(api, context, [record]).json()["previews"] == []
+    if allocation == "full":
+        assert record["blockers"] == []
+        assert approve(api, context, record).status_code == 200
+        result = preview(api, context, [record]).json()["previews"][0]
+        assert (
+            result["rental_refund"],
+            result["deposit_refund"],
+            result["refund"],
+        ) == ("120.00", "80.00", "200.00")
+    else:
+        blocker = (
+            "early_refund_amount_or_precision_unsupported"
+            if allocation == "inclusive_as_rental"
+            else "early_refund_allocation_requires_clarification"
+        )
+        assert blocker in record["blockers"]
+        assert approve(api, context, record).status_code == 409
+        assert preview(api, context, [record]).json()["previews"] == []
+    fake.compare.assert_called_once()
 
 
 def test_source_change_during_ai_rejects_publication(api, context):

@@ -200,6 +200,20 @@ def rule_blockers(rules, claims):
             for c in claims["cancellation_conditions"]
         ):
             blockers.append(f"{name}_clause_not_supported_by_source_version")
+        # A quoted aggregate refund does not establish its component allocation.
+        # Recognise only universal full/zero outcomes here; do not derive a split
+        # by subtraction or silently rewrite a model's or reviewer's values.
+        if (
+            re.search(r"\brefund\w*\b", band.clause, re.I)
+            and not re.search(r"\b(?:rental|deposit)\b", band.clause, re.I)
+            and not re.search(
+                r"\b(?:full refund|refunds? (?:the )?full (?:amount|total)"
+                r"|no refund)\b",
+                band.clause,
+                re.I,
+            )
+        ):
+            blockers.append(f"{name}_refund_allocation_requires_clarification")
         if {"rental_total", "deposit"} <= set(amounts):
             try:
                 rental = component_refund(band.rental_refund, amounts["rental_total"])

@@ -22,8 +22,12 @@ class Refund(StrictModel):
 
 
 class Band(StrictModel):
-    rental_refund: Refund
-    deposit_refund: Refund
+    rental_refund: Refund = Field(
+        description="Refund of rental fee only; percent uses rental fee as its base."
+    )
+    deposit_refund: Refund = Field(
+        description="Refund of deposit only; percent uses deposit as its base."
+    )
     # Empty support preserves unknowns in an unapproved draft; service blocks
     # confirmation and calculation until a real exact source clause is supplied.
     clause: str = Field(max_length=4000)
