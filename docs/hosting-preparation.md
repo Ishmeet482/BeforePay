@@ -2,9 +2,11 @@
 
 **Later optional increment:** [controlled hosted sandbox payments](hosted-sandbox-payments.md)
 adds a default-off opt-in, durable attempt caps and separately prepared minimal
-runtime grants. Earlier unconditional public-payment-ban statements below describe
-the original checkpoint. Hosted webhooks remain disabled; no grants/configuration
-were applied by that increment.
+runtime grants. Those grants were subsequently applied on 7 November 2026, and
+the user reported a hosted USD 200 sandbox capture for **Camera kit- test 1** with
+receipt persistence after refresh. Earlier unconditional public-payment-ban
+statements describe the original checkpoint; defaults remain off until explicit
+sandbox enablement. Live payments and hosted webhooks remain disabled.
 
 Prepared locally on 2026-11-05. **No deployment/provisioning, development migration,
 credential change or Gemini/PayPal call.** Migration `0015_demo_templates` remains
@@ -22,16 +24,21 @@ mocked-provider tests; no tests were rerun for this documentation update.
 
 Two AI refund-allocation errors required human correction before rule approval.
 Their exact erroneous outputs and causes are not established here. Intermittent
-`public_setup_required` errors cleared on refresh; the latest Agreement review
-loaded version 1 and both source acknowledgements. No failing request/exception
+`public_setup_required` errors cleared on refresh; during the earlier investigation,
+Agreement review loaded version 1 and both source acknowledgements. No failing request/exception
 was captured, so no specific configuration, grant or code fix is justified.
 The code uses this error for both settings validation and database-readiness
 failure; the code alone does not identify which failed in this hosted observation.
 Capture the method, endpoint, status, full safe error message and sanitised runtime
 exception/SQLSTATE if it recurs. Do not weaken guards or add automatic retries.
 
-Public-demo payment execution remains disabled. Exact checkout approval does not
-establish a capture or receipt. This update changes no hosted settings, grants or
+The subsequent user-verified hosted sandbox walkthrough completed **Camera kit- test 1**
+with a **USD 200 capture**. Receipt persisted after refresh and links agreement
+**v2**, merchant proposal **v2**, saved comparison, checkout approval and both
+approved cancellation rules. See [manual capture evidence](hosted-sandbox-payments.md#user-verified-hosted-sandbox-capture--7-november-2026).
+Hosted sandbox payments default off and require explicit enablement; live payments
+and hosted webhooks remain disabled. Checkout approval alone does not establish
+capture. This documentation update changes no hosted settings, grants or
 records and makes no provider calls. Remaining hosted routing/cookie/cache,
 cross-session isolation, quota, reliability and account gates below are not all
 certified by this single walkthrough. AI correctness and intermittent readiness
@@ -109,7 +116,9 @@ variables in the host's secret/configuration store after authorisation:
 | `DEMO_SESSION_TTL_SECONDS` | `2592000` for newly issued 30-day persistent sessions; existing stored expiries are unchanged. Role switching/revisits do not slide expiry. |
 | `DEMO_AI_CALLS_PER_DAY`, `DEMO_AI_TOKENS_PER_DAY`, `DEMO_AI_TOKENS_PER_MINUTE` | Default **0**. Explicit operator budgets are now accepted; actual hosted enablement is a separate step. All three must permit a reservation. |
 | `GEMINI_API_KEY` | Default absent/empty. May be installed privately for separately authorised budgeted AI; no key was installed by the prerequisite change. No fallback/model change. |
-| `PAYPAL_SANDBOX_ENABLED` | `false`; no PayPal client ID/secret installed. Public payment execution remains denied independently. |
+| `PUBLIC_SANDBOX_PAYMENTS_ENABLED`, `PAYPAL_SANDBOX_ENABLED` | Default `false`; both explicitly `true` plus complete sandbox credentials and runtime grants are required for hosted sandbox checkout. See [enablement guide](hosted-sandbox-payments.md). |
+| `PAYPAL_ENVIRONMENT` | Only `sandbox`. Live mode is rejected; client ID/secret/merchant ID stay backend-configured, with only client ID exposed to SDK. |
+| `DEMO_PAYMENT_ATTEMPTS_GLOBAL`, `DEMO_PAYMENT_ATTEMPTS_PER_SESSION` | Default `20` / `1`; durable all-time new-attempt caps. |
 | `PUBLIC_WEBHOOKS_ENABLED` | `false`. Hosted preparation refuses enabling it in this phase. |
 | `DB_POOL_SIZE`, `DB_MAX_OVERFLOW`, `DB_POOL_TIMEOUT` | Defaults 2, 0, 3 seconds; small validated bounds. |
 | Other `DEMO_*` resource limits | Retain [Phase 2 defaults](public-demo-controls.md); grossly raised session/source/write/storage/concurrency ceilings are rejected. Zero can close admission. |
@@ -249,7 +258,8 @@ preparation conservatively; [Psycopg documents this option](https://www.psycopg.
 This does not claim modern PgBouncer cannot handle protocol prepared statements.
 Public transactions set **transaction-local** 5-second statement and 3-second lock
 timeouts, avoiding session-level state. Admission uses transaction-level advisory
-locks. No provider call holds a booking lock/transaction. Actual Neon/PgBouncer
+locks. No AI inference holds a booking lock/transaction; payment capture retains
+the lock across provider verification. Actual Neon/PgBouncer
 TLS, permissions, JSONB, locks, reconnects and scaling remain hosted checks; see
 [Neon's transaction pooling limitations](https://neon.com/docs/connect/connection-pooling).
 
@@ -257,7 +267,10 @@ SDK timeout stays 60 seconds/one attempt; function cap 90 seconds; ordinary brow
 API timeout is now 95 seconds. Session-only operations keep 20 seconds. This fits
 within Vercel's documented [120-second external proxy ceiling](https://vercel.com/docs/limits#proxied-request-timeout),
 but cold starts and account-specific effective durations must be measured. No
-timeout automatically retries a mutation. Public AI remains disabled regardless.
+timeout automatically retries a mutation. AI defaults off unless explicitly
+budgeted; later hosted manual extraction is documented separately. Payment capture
+retains its booking lock across remote verification; the no-lock-during-inference
+policy above concerns AI calls, not capture.
 
 Public PDFs stay 3 MiB, 20 pages and 40,000 extracted characters. Raw booking
 requests are bounded to 3 MiB + 64 KiB before multipart parsing, below Vercel's
@@ -351,8 +364,10 @@ rejected in rolled-back verification transactions. Security-catalogue snapshots
 confirmed permissions, function definitions/defaults, ownership and all 20 enabled
 protection triggers unchanged. This is a real database/setup check, **not** a
 deployed `/api/health/ready` response or proof of hosted proxy/cookie behaviour.
-No deployment or Gemini/PayPal call occurred; public AI/payment execution remain
-disabled. No other database was accessed for setup.
+At that template-only setup checkpoint no deployment or Gemini/PayPal call
+occurred and public AI/payment execution was disabled. No other database was
+accessed for setup. Later explicit AI/sandbox enablement and the reported hosted
+capture do not change this historical setup evidence.
 
 After explicit demo entry, `GET /api/demo-templates` returns the shared authored
 catalogue to that active session. It contains synthetic quotation and message text.
@@ -365,15 +380,18 @@ explicit template picker; that UI is not claimed implemented here.
 With AI off, judges can exercise real session entry, booking/source persistence,
 evidence access and honest blocked generation. A full new agreement/comparison
 story requires later separately authorised, bounded AI enablement; **no pre-made
-AI output or receipt is substituted**. Public payment execution stays unavailable.
+AI output or receipt is substituted**. With sandbox opt-in off, public payment
+execution stays unavailable; explicit controlled sandbox enablement now supports
+the [reported hosted receipt](hosted-sandbox-payments.md#user-verified-hosted-sandbox-capture--7-november-2026).
 Local saved receipts are not copied into hosted sessions or advertised as new
 payments. Existing local story docs are historical inventories only.
 
 ## Webhook exposure policy
 
 Public `/api/paypal/*` is blocked before database/provider dependencies by default.
-Vercel preparation rejects an enabled webhook flag or installed payment secret.
-Do not register a public webhook or carry merchant credentials into this demo.
+Vercel rejects an enabled webhook flag. Payment credentials require the complete
+explicit sandbox opt-in; otherwise they remain rejected. Keep them backend-only.
+Do not register a hosted webhook in this phase.
 Existing local sandbox and explicitly enabled non-Vercel controlled signature path
 remain intact: no bypass of verification/deduplication/immutable receipts. A future
 hosted webhook exception needs separate scope, credentials, edge admission limits
@@ -424,7 +442,8 @@ Validation results:
 - Frontend TypeScript/production build passed. No new template-picker UI or live
   browser-to-Vercel verification is claimed. No provider calls were made.
 - Ruff lint/format checks passed. The rewrite generator has valid/invalid-origin
-  tests and has not been pointed at an actual backend.
+  tests; the original checkpoint used a placeholder, while the subsequent committed
+  rewrite targets the backend origin documented above.
 - Both configs pass **used-property validation** against the downloaded official
   Vercel schema. The schema itself currently fails meta-validation in its unused
   `experimentalServicesV2/additionalProperties` branch; the standard validator

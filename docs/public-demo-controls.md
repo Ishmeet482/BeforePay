@@ -5,6 +5,12 @@ supersedes unconditional payment denial only when explicitly configured. Default
 remain off; attempt caps reuse the immutable write-admission ledger. AI controls
 are unchanged, and hosted webhook exposure remains disabled.
 
+On **7 November 2026**, the user verified explicitly enabled hosted sandbox booking
+**Camera kit- test 1** captured **USD 200**, with receipt persistence after refresh
+and exact agreement v2/proposal v2, comparison, checkout approval and both approved
+rule references. This is [manual hosted evidence](hosted-sandbox-payments.md#user-verified-hosted-sandbox-capture--7-november-2026),
+separate from the original phase's mocked checks. Live payments remain disabled.
+
 Later [Phase 3 hosting preparation](hosting-preparation.md) adds strict public
 settings/readiness and disables public webhook exposure by default. Its hosted
 default-off AI/no-payment-secret policy supersedes the earlier optional public
@@ -123,17 +129,20 @@ explicit operator procedure, never automatic cascading deletion of receipts.
 
 ## Public payment policy
 
-Public mode returns 403 `public_demo_payment_disabled` for SDK/config exposure,
+Public mode **without explicit sandbox opt-in** returns 403 `public_demo_payment_disabled` for SDK/config exposure,
 order creation/retry, capture/retry and provider reconciliation. The service layer
 also rejects create/capture/reconciliation, so accidental internal reuse cannot
-bypass the router policy. Ordinary sandbox flags or credentials cannot override it.
-Readiness includes `payment_execution_allowed=false`, no configured SDK state and
+bypass the router policy. Ordinary sandbox flags or credentials alone cannot
+override it; `PUBLIC_SANDBOX_PAYMENTS_ENABLED=true` and complete sandbox configuration
+are also required. Default-off eligibility includes `payment_execution_allowed=false`, no configured SDK state and
 an explicit policy notice. UI disables SDK loading, provider status checks and
 create/capture retries, while retaining uncertain-result warnings.
 
 Agreement/rule/checkout approvals remain separate exact-version actions, not
 payment. Public readiness and explicit checkout review can still operate; no
-approval grants payment execution. Cancellation previews remain Python calculations,
+approval grants payment execution by itself. Explicitly enabled sandbox execution
+also requires exact current approval, durable global/session attempt admission and
+verified capture. Cancellation previews remain Python calculations,
 not refunds. Owned historical attempts/receipts remain readable and unchanged;
 foreign sessions cannot read them. No fabricated/seeded receipt was added, and an
 unpaid booking still returns 404 for receipt retrieval.

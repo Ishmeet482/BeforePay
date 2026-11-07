@@ -2,8 +2,34 @@
 
 Implemented 2026-11-07; **disabled by default**. This supersedes the earlier
 unconditional public payment ban only when an operator explicitly enables the
-sandbox opt-in. Nothing here enables live payments, authenticates Buyer/Merchant
-roles, changes hosted records/configuration or demonstrates a hosted capture.
+sandbox opt-in. Live payments and hosted webhooks remain disabled; Buyer/Merchant
+roles remain simulated views. The implementation checkpoint used mocked providers;
+the later user-reported hosted capture is recorded separately below.
+
+## User-verified hosted sandbox capture — 7 November 2026
+
+**Manual verification reported by the user; not an automated test or a fresh
+independent database/PayPal audit during this documentation update.**
+
+- Booking **Camera kit- test 1** completed a **USD 200 PayPal sandbox capture**.
+- Its app-issued sandbox receipt persisted after browser refresh.
+- The receipt links **buyer agreement v2**, **merchant proposal v2**, the saved
+  comparison, separate checkout approval and **both approved cancellation rules**.
+  These are the reported saved approval references, not reconstructed current terms.
+- This is a hosted sandbox transaction with test funds, separate from historical
+  local receipts and mocked test receipts. No real-money payment is supported.
+- Refresh persistence does not establish hosted webhook delivery, duplicate-capture
+  replay, browser-interruption recovery or current settlement. Hosted webhooks stay
+  disabled. No order/capture/receipt identifiers or exact capture time were supplied
+  for this report; none are invented here.
+
+The [earlier hosted walkthrough](demo.md#user-reported-hosted-walkthrough--2026-11-07)
+included two AI refund-allocation errors, manual buyer/merchant rule corrections
+and separate human approvals. Those errors remain part of the evidence; a successful
+capture does not establish correct AI proposals or prove the later offline-tested
+prompt update's live effectiveness. Intermittent `public_setup_required` errors
+cleared on refresh, but their hosted causes remain unresolved. Sanitised diagnostic
+logging is available; no captured failure has established the cause.
 
 ## Boundary and durable limits
 
@@ -42,15 +68,16 @@ capture checks provider state and current exact approval; only authenticated fin
 COMPLETED capture data matching amount/currency, merchant, order and attempt can
 create the immutable receipt. Buyer approval/callback alone cannot establish paid.
 
-## Pending owner grants — not applied
+## Owner grants applied — 7 November 2026
 
 No migration is needed: the existing ledger already supports the write action.
-The current hosted runtime role intentionally lacks payment write permissions.
-Vercel readiness now refuses sandbox opt-in until the minimum payment grants exist
+The documented minimum payment grants were separately authorised and applied to
+`beforepay_demo_runtime` on the exact project/branch/database below.
+Vercel readiness refuses sandbox opt-in until the minimum payment grants exist
 and still refuses owner/admin/schema-create privileges. Do not enable the opt-in
 first and then weaken readiness to make it pass.
 
-After separate authorisation, use the verified direct owner connection to project
+For a separately authorised repeat/setup, use the verified owner connection to project
 `super-hat-76778640`, branch `br-shy-dawn-b3vw2kgo`, database
 `beforepay_demo_2026`. Privately set a native PostgreSQL owner URL in the operator's
 shell (not an environment file committed to Git), verify the target, then run:
@@ -66,13 +93,22 @@ The script verifies database name and `neondb_owner`, then grants only INSERT on
 `order_id`, `capture_id`, `status`, `error_code`, `capture_requested_at`, `updated_at`.
 Existing read grants are reused. No receipt/event UPDATE, DELETE, TRUNCATE,
 immutable binding updates, schema ownership, function or webhook grants are added.
-All existing triggers remain enabled. This script was exercised only against a
-disposable role/database during testing; it has not been applied to Neon.
+All existing triggers remain enabled. Real runtime-authenticated SQL verification
+exercised allowed inserts/operational updates and 12 forbidden-operation checks in
+an explicitly rolled-back transaction. Zero probe records persisted; all 25 table
+counts/fingerprints and all 20 trigger definitions/states remained unchanged.
+Ownership stays with `neondb_owner`, revision stays `0015_demo_templates`, and runtime
+has no admin memberships. This grant verification is distinct from the user's
+subsequent hosted payment observation. See [permission inventory](neon-runtime-permissions.md).
 
-## Proposed backend Vercel configuration — not applied
+## Explicit backend Vercel sandbox configuration
 
 Keep the existing private runtime database URL, exact HTTPS frontend origin,
-Secure session cookies, quotas and AI settings. Set only in the backend project's
+Secure session cookies, quotas and AI settings. The user subsequently reported
+successful explicitly enabled hosted sandbox checkout; this documentation update
+does not inspect or change dashboard values. The required enablement pattern is
+shown below, with code-default attempt caps rather than an audit of current limits.
+Set only in the backend project's
 environment store, never frontend `VITE_*` variables:
 
 ```dotenv
@@ -90,7 +126,8 @@ Privately configure `PAYPAL_SANDBOX_CLIENT_ID`, `PAYPAL_SANDBOX_CLIENT_SECRET` a
 Leave `PAYPAL_SANDBOX_WEBHOOK_ID` absent while hosted webhooks are disabled.
 `backend/vercel.json` no longer forces the sandbox enable flag to false; Python
 defaults still deny payment and need both explicit flags. No model/key changes
-are needed. A deployment loading these settings is a later operator action.
+are needed. Enabling this on another deployment requires a separate operator action;
+the default remains off.
 
 For rollback, remove sandbox credentials and set both enable flags false together
 in the next configuration revision. Retain all attempts/receipts/charges. An
@@ -122,7 +159,8 @@ Hosted webhooks remain blocked by the existing Vercel exposure guard; do not
 register or enable one for this increment. Signed verification/deduplication and
 historical reconciliation remain unchanged for existing authorised local webhook
 use. Without hosted delivery, browser-interruption recovery may require explicit
-reconciliation after return; no live recovery or hosted payment is claimed here.
+reconciliation after return. The reported hosted capture above does not demonstrate
+live interruption recovery.
 
 ## Offline evidence
 
@@ -133,8 +171,9 @@ per-session limits, durable failure charges, stable retries, foreign ownership,
 approval/version/amount guards, duplicate captures, immutable receipts and signed
 webhook regressions. An expanded test applies the exact optional grants to a
 restricted disposable role and completes mocked checkout through the public HTTP
-flow; readiness rejects the missing grants beforehand. No hosted grant, migration,
-credential retrieval, provider call or deployment was performed.
+flow; readiness rejects the missing grants beforehand. That implementation/test
+checkpoint performed no hosted grant, migration, credential retrieval, provider call
+or deployment. The later owner grants and manual hosted capture are separate evidence.
 
 Focused verification: **144 distinct backend checks passed**, with six existing
 dependency warnings per run. The initial seven-suite run passed 143; the added

@@ -28,17 +28,20 @@ below; it does not certify all versions, sessions, browsers or error paths.
 | Correction and comparison | Correction review was recorded and the fresh comparison matched. | Correction review applies to its saved context; it is separate from rule and checkout approvals. |
 | Buyer and merchant rules | AI-proposed rules needed manual refund-allocation corrections; the corrected buyer and merchant rules were explicitly approved. | Human correction and separate approvals were required. Do not describe the original AI proposals as correct. |
 | Cancellation | Cutoff previews were exercised after rule correction and approval. | Python calculates from approved rules. This report supplies no exact cutoff timestamps or numeric preview outputs; do not substitute values from the separate local example. No cancellation or refund execution is claimed. |
-| Checkout | Exact checkout approval was completed. | Approval is not payment. Public-demo payment execution remains disabled; this walkthrough produced no claimed capture or receipt. |
+| Checkout | Exact checkout approval was completed. | Approval remains separate from capture. Hosted sandbox execution defaults off and requires explicit configuration; live payments and hosted webhooks remain disabled. |
+| Hosted sandbox receipt (later verification on 7 November) | **Camera kit- test 1** completed a **USD 200** sandbox capture; receipt persisted after refresh and links agreement **v2**, merchant proposal **v2**, saved comparison, checkout approval and both approved cancellation rules. | User-reported manual hosted verification, not a mocked result, independent re-audit or webhook/interruption-recovery demonstration. [Capture details and boundaries](hosted-sandbox-payments.md#user-verified-hosted-sandbox-capture--7-november-2026). |
 
 ### Observed errors and remaining limitations
 
-- **Two AI refund-allocation errors were reported.** The exact incorrect component
-  allocations and raw outputs were not supplied in this report. Manual correction
-  preceded rule approval; neither the cause nor a model/prompt fix is established.
+- **Two AI refund-allocation errors were reported**, including assigning the
+  inclusive USD 200 refund to the USD 120 rental component. Raw provider outputs
+  are not reproduced here. Manual buyer/merchant rule corrections preceded separate
+  approvals. The later [component-allocation prompt/schema and blocker update](cancellation-preview.md#component-allocation-correction--2026-11-07)
+  was verified offline; its live model-quality improvement is not established.
   This is a reason to review each proposed rental-fee/deposit allocation against
   the saved clauses, not evidence that AI calculates money.
-- **Intermittent `public_setup_required` errors cleared on refresh.** The latest
-  Agreement review refresh loaded version 1 and both source acknowledgements.
+- **Intermittent `public_setup_required` errors cleared on refresh.** During the
+  earlier investigation, Agreement review loaded version 1 and both source acknowledgements.
   No failing Network request or sanitised runtime exception was captured, so the
   failing GET/POST, exact guard and root cause remain unresolved. Recovery on
   refresh is an observation, not a diagnosed or fixed defect, and is not a reason
@@ -48,7 +51,18 @@ below; it does not certify all versions, sessions, browsers or error paths.
 - This hosted report is separate from the earlier local sandbox captures and
   [webhook audit](paypal-webhook-verification-2026-11-02.md). Existing local sandbox
   receipts are historical provider-backed records; browser-fixture receipts are
-  mocked. Neither establishes a payment in this hosted walkthrough.
+  mocked. Neither is evidence for the new hosted capture; that capture has its
+  own user-reported manual verification above.
+
+To demonstrate the saved hosted receipt, use the original owning demo session and
+open **Camera kit- test 1 → Checkout & receipt**; refresh and inspect the saved
+version links. It is not globally available to other visitors. Do not create or
+capture another payment merely to replay this observation. For a separately
+authorised new sandbox checkout, use a **Personal sandbox buyer account** distinct
+from the app's Business sandbox seller, enter that buyer login only in PayPal's
+sandbox popup, and obtain credentials privately from the organiser or Sandbox
+Accounts. BeforePay's demo-role credentials are not PayPal credentials. Never
+publish passwords or use real PayPal credentials/cards. See [buyer setup](hosted-sandbox-payments.md#sandbox-buyer-walkthrough).
 
 This documentation update reran no tests, made no Gemini/PayPal calls and changed
 no hosted records. Existing automated checks remain the separately documented

@@ -5,20 +5,37 @@ detection, clarification/reply, correction review, a matching comparison, manual
 corrected and separately approved buyer/merchant rules, cutoff previews and exact
 checkout approval. See the [2026-11-07 hosted walkthrough](demo.md#user-reported-hosted-walkthrough--2026-11-07)
 for the two AI refund-allocation errors and intermittent refresh-cleared
-`public_setup_required` errors; their causes remain unresolved. Payment execution
-remains disabled. These are manual observations, not new test results. The local
+`public_setup_required` errors; their causes remain unresolved. Subsequently, on
+**7 November 2026**, the user verified **Camera kit- test 1** completed a **USD 200
+sandbox capture** with receipt persistence after refresh. It links agreement **v2**,
+merchant proposal **v2**, saved comparison, checkout approval and both approved
+cancellation rules. Hosted sandbox execution defaults off and was explicitly
+enabled for this walkthrough; live payments and hosted webhooks remain disabled.
+See [hosted receipt evidence and Personal sandbox buyer setup](hosted-sandbox-payments.md).
+These are manual observations, not new test results. The local
 record inventory and scene plan below remain historical and must not be presented
 as the hosted session's bookings or receipt.
 
+**Current hosted receipt scene:** in the original owning session, open
+**Camera kit- test 1 → Checkout & receipt** and show the saved USD 200 capture and
+exact approval links. Avoid PayPal/create/capture actions during a saved-history
+replay. Judges in a different isolated session cannot open this booking; use a
+labelled recording if owner-session access is unavailable, not a fabricated receipt.
+A fresh payment requires separately configured sandbox checkout and a distinct
+Personal sandbox buyer login entered only in PayPal's sandbox popup. No credentials
+belong in a presentation, README or source intake. This receipt scene does not
+demonstrate webhook delivery or browser-interruption recovery.
+
 **Session-isolation update:** this is a historical local-record inventory from
-before [Phase 1](demo-sessions.md). Migration 0013 remains unapplied. Once applied,
+before [Phase 1](demo-sessions.md). At that local checkpoint migration 0013 was
+unapplied; this does not describe the migrated hosted database. Once applied,
 existing bookings remain unowned and cannot be opened by new public/demo sessions.
 Do not assign them to a judge session or publish the development database. A new
 isolated synthetic presentation setup is still required; this outline is not a
 working browser recipe for the new session boundary.
 
 **Recommended: saved-history walkthrough, ending with an existing sandbox receipt.**
-No fresh AI or payment needed. Current code/docs and local records were inspected
+No fresh AI or payment needed. At that checkpoint code/docs and local records were inspected
 using a PostgreSQL `REPEATABLE READ` transaction with `SET TRANSACTION READ ONLY`
 (`read_only=on`, revision `0012_policy_consistency`). Only docs were written; no
 tests, previews, provider actions, migrations or service startup occurred. Screens

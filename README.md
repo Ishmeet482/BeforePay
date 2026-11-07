@@ -17,10 +17,13 @@ payment record. [More screens](docs/screenshots/beforepay-workspace-themes/index
 
 ## Demo availability and walkthrough
 
-**No deployed public demo URL is verified.** Run locally using the instructions
-below. Vercel hosting is prepared; the dedicated Neon database has been migrated,
-given a restricted runtime role and initialised with two authored templates.
-Database setup is not a deployed application.
+**Hosted sandbox walkthrough user-verified on 7 November 2026.** Booking
+**Camera kit- test 1** completed a **USD 200** sandbox capture; its receipt persisted
+after refresh and links agreement **v2**, merchant proposal **v2**, saved comparison,
+checkout approval and both approved cancellation rules. This is manual hosted
+verification, separate from mocked tests. The frontend judge URL is not recorded
+here; obtain it from the organiser or run locally using the instructions below.
+See [hosted evidence and setup](docs/hosted-sandbox-payments.md).
 
 Buyer and Merchant are **prototype views—not authenticated accounts**. Both use
 the same session-owned booking and saved versions; switching does not approve or
@@ -121,8 +124,22 @@ and [delivery evidence limits](docs/paypal-webhook-verification-2026-11-02.md).
 **Public mode defaults:** SDK/client configuration, order creation, capture and
 provider reconciliation are denied server-side. An explicit [hosted sandbox
 opt-in](docs/hosted-sandbox-payments.md) adds durable attempt limits and requires
-separately authorised runtime payment grants, which remain unapplied. Hosted
+separately authorised runtime payment grants, applied on 7 November 2026. Hosted
 webhooks stay disabled. No live-money mode or refund execution exists.
+
+For a new sandbox test, use a **Personal sandbox buyer account**, separate from
+the Business sandbox seller associated with the REST app. Obtain its login
+privately in PayPal Developer Dashboard's Sandbox Accounts or from the organiser;
+enter it only in the PayPal sandbox popup. BeforePay demo-role credentials are
+not PayPal credentials. Never publish buyer passwords or use real account/card
+details. [Step-by-step buyer setup](docs/hosted-sandbox-payments.md#sandbox-buyer-walkthrough).
+
+The hosted walkthrough also exposed **two AI refund-allocation errors**, corrected
+manually before separate buyer/merchant rule approvals. The later prompt/schema
+fix has offline verification, not demonstrated live model-quality improvement.
+Intermittent **`public_setup_required`** errors cleared on refresh; their causes
+remain unresolved despite added sanitised diagnostics. A successful capture does
+not erase either limitation. [Manual observations](docs/demo.md#user-reported-hosted-walkthrough--2026-11-07).
 
 ### APIMatic: development guidance
 
@@ -150,7 +167,7 @@ a hosted webhook service or independent transaction proof.
 | Correction history | Buyer reviews original discrepancy, reply, newer proposal and fresh matching comparison. Backend requires unchanged baseline and current unambiguous bindings. **Correction reviewed for these versions—not checkout approval**. [Guide](docs/clarification-corrections.md). |
 | Policy consistency | Explicit latest-proposal deposit/cancellation check: potential contradiction, needs clarification or no contradiction found, with exact clauses. Current conflict/uncertainty blocks definitive merchant previews and checkout. Clean findings grant no approval. [Guide](docs/policy-consistency.md). |
 | Cancellation previews | Manual or AI-proposed source-bound rules, editing and separate human approval; Python Decimal/timezone-aware calculations. Narrow pre-pickup USD model. Preview does not cancel/refund. [Guide](docs/cancellation-preview.md). |
-| Checkout/receipt | Separate exact-context approval, controlled local sandbox capture, uncertain-payment handling and immutable agreement-linked receipt/history. Public execution remains denied. |
+| Checkout/receipt | Separate exact-context approval, local or explicitly enabled hosted sandbox capture, durable public attempt caps, uncertain-payment handling and immutable agreement-linked receipt/history. Public execution defaults off. |
 
 Evidence/version changes make dependent results stale. Historical questions,
 replies, correction reviews and receipts preserve their original context. Blocker
@@ -444,15 +461,16 @@ Prepared architecture uses **two Vercel projects from this same repository**:
 | Frontend | `frontend` | Vite; `npm ci`; `npm run build`; output `dist`; Node 22.x. |
 | Backend | `backend` | FastAPI `app/main.py`; `uv sync --frozen --no-dev`; Python 3.14; 90-second function. |
 
-Neon database preparation is complete: migration head `0015_demo_templates`,
-owner/runtime separation, narrow grants, immutable protections and idempotent
-template setup were verified. This is separate from hosted runtime, pooled
-connections and browser/proxy verification. No Vercel deployment, working public
-URL or automatic deployment pipeline is claimed.
+Neon setup includes migration head `0015_demo_templates`, owner/runtime separation,
+narrow grants, immutable protections and idempotent template setup. The later
+runtime payment grants were verified with rolled-back SQL probes. The user then
+reported a hosted sandbox capture and receipt persistence; this is distinct from
+both database grant checks and automated mocks. It does not certify every hosting,
+isolation, quota or browser failure path, or an automatic deployment pipeline.
 
-Frontend uses relative `/api`; external rewrite must target the actual stable
-backend HTTPS origin. Current destination is deliberately
-`https://backend-not-configured.invalid`. Prepare only after choosing the real host:
+Frontend uses relative `/api`; the committed rewrite targets
+`https://before-pay-three.vercel.app/api/:path*`. This is the backend, not the judge
+frontend URL. To deliberately change its destination after choosing another host:
 
 ```sh
 python3 scripts/prepare_vercel.py --backend-origin https://YOUR-BACKEND-HOST
@@ -469,19 +487,25 @@ preview hosts. Preserve cookies, Origin, CSRF and no-cache headers through `/api
 | `PUBLIC_DEMO_DATABASE` | Exact dedicated database name. |
 | `PUBLIC_DEMO_MODE`, `DEMO_COOKIE_SECURE` | `true`. |
 | `DEMO_ALLOWED_ORIGINS` | JSON array of actual trusted frontend HTTPS origins. |
-| `DEMO_AI_CALLS_PER_DAY`, `DEMO_AI_TOKENS_PER_DAY`, `DEMO_AI_TOKENS_PER_MINUTE` | All `0`. |
-| `GEMINI_API_KEY`, PayPal credential variables | Absent/empty. |
-| `PAYPAL_SANDBOX_ENABLED`, `PUBLIC_WEBHOOKS_ENABLED` | `false`. |
+| `DEMO_AI_CALLS_PER_DAY`, `DEMO_AI_TOKENS_PER_DAY`, `DEMO_AI_TOKENS_PER_MINUTE` | Default `0`; explicitly budgeted enablement retains atomic reservations, concurrency and quota controls. Current dashboard values are not audited here. |
+| `GEMINI_API_KEY` | Backend-only; configured privately for explicitly budgeted AI. |
+| `PUBLIC_SANDBOX_PAYMENTS_ENABLED`, `PAYPAL_SANDBOX_ENABLED` | Default `false`; both must be explicitly `true` for hosted sandbox checkout, with complete same-app sandbox credentials and runtime grants. |
+| `PAYPAL_ENVIRONMENT`, PayPal credential variables | Only `sandbox`; client ID, secret and merchant ID configured privately in backend. Only client ID is exposed to SDK. |
+| `DEMO_PAYMENT_ATTEMPTS_GLOBAL`, `DEMO_PAYMENT_ATTEMPTS_PER_SESSION` | Default `20` / `1`, durable all-time new-attempt caps, not daily resets. |
+| `PUBLIC_WEBHOOKS_ENABLED` | `false`; hosted webhooks remain disabled. |
 
 Frontend needs no database/provider secrets or `VITE_*` configuration. Retain
 conservative session/resource caps and bounded connection pools. Runtime cannot
-modify templates/migration metadata, delete history or write payment records.
-Future privileges need explicit review, not blanket grants.
+modify templates/migration metadata or delete history. Explicit payment grants
+allow only append operations and named operational attempt updates; immutable
+history and binding protections remain. Future privileges need explicit review,
+not blanket grants.
 
 Before release, verify actual account limits, build/bundle/runtime acceptance,
 pooler/TLS, domains/deployment protection, cookie/CSRF/cache isolation, uploads and
-edge limits. Public AI remains off, limiting a fresh judge’s end-to-end generation
-workflow. [Hosting/operator runbook](docs/hosting-preparation.md),
+edge limits. AI defaults off unless explicitly budgeted; hosted manual extraction
+was reported separately from automated checks. No retries or paid fallback are
+enabled. [Hosting/operator runbook](docs/hosting-preparation.md),
 [permission audit](docs/neon-runtime-permissions.md), [durable controls](docs/public-demo-controls.md).
 
 ## Safeguards and limitations
@@ -523,5 +547,6 @@ Recorded checkpoints below were not rerun merely to edit this README.
 | Live extraction/manual workflows | Cited draft persistence was recorded through the service; user-reported clarification/reply/correction and consistency observations are separately labelled. [Extraction](docs/backend-drafts.md), [replies](docs/merchant-replies.md), [correction review](docs/clarification-corrections.md), [consistency](docs/policy-consistency.md). |
 | User-reported refund boundary | Approved rules produced USD 200 refund exactly 48 hours before pickup; one minute later USD 80 refunded / USD 120 retained. Not independently rerun during documentation. [Report](docs/cancellation-preview.md#user-reported-live-proposal-and-manual-preview-verification--2026-11-02). |
 | Historical sandbox payment/webhook | Manual capture/refresh persistence and verified-path event/single-receipt audit; no live browser-loss recovery demonstration or independent resend proof. [Payment](docs/paypal-sandbox.md#successful-manual-capture-and-refresh-persistence--2026-10-31), [audit](docs/paypal-webhook-verification-2026-11-02.md). |
+| Hosted sandbox capture — 7 November 2026 | User verified **Camera kit- test 1**, **USD 200**, receipt after refresh, agreement **v2** / proposal **v2**, saved comparison, checkout approval and both approved cancellation rules. Manual observation, not an automated test or a new independent provider audit. No hosted webhook/interruption-recovery claim. [Report](docs/hosted-sandbox-payments.md#user-verified-hosted-sandbox-capture--7-november-2026). |
 | Six-case AI pilot | Three cases per task, valid literal citations in all six, one comparison uncertainty-label failure. Uncertainty handling: comparison **0/1**, consistency **1/1**. Small synthetic pilot, not general accuracy; prompt v2 live-unverified. [Expected/actual results and denominators](docs/policy-pilot-v2-2026-11-04.md). |
-| Dedicated Neon setup | Real owner/runtime connections, migration head, permission denials, 20 protection triggers, two templates and idempotency verified. No sessions/bookings/payments seeded; hosted app behaviour remains pending. [Record](docs/hosting-preparation.md#using-templates-without-inventing-saved-history). |
+| Dedicated Neon setup | Real owner/runtime connections, migration head, permission denials, 20 protection triggers, two templates and idempotency verified. Later payment grants passed runtime-authenticated rollback probes; all 25 table fingerprints/counts were preserved. Setup/probes seeded no persistent sessions/bookings/payments; later user-created hosted records are separate. [Record](docs/neon-runtime-permissions.md). |
