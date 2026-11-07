@@ -167,6 +167,20 @@ def reserve(caller, kind, action, context, *, units=0, booking_id=None):
                 "Shared hourly demo entry allowance reached.",
             )
         elif kind in {"booking", "source", "write"}:
+            if kind == "write" and action == "sandbox_payment_attempt":
+                attempts = [r for r in rows if r.action == action]
+                limit(
+                    len(attempts),
+                    settings.demo_payment_attempts_global,
+                    "demo_payment_attempt_limit",
+                    "Shared sandbox payment attempt allowance reached or disabled.",
+                )
+                limit(
+                    sum(r.session_id == owner for r in attempts),
+                    settings.demo_payment_attempts_per_session,
+                    "demo_payment_attempt_limit",
+                    "This workspace has used its sandbox payment attempt allowance.",
+                )
             global_cap = getattr(
                 settings,
                 {
@@ -263,7 +277,8 @@ def run_ai(session, action, context, call, *, booking_id):
 
 
 def deny_public_payment():
-    if get_settings().public_demo_mode:
+    settings = get_settings()
+    if settings.public_demo_mode and not settings.public_sandbox_payments_enabled:
         raise HTTPException(
             403,
             {

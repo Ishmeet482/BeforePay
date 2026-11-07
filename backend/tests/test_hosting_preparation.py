@@ -366,7 +366,7 @@ def test_vercel_configs_and_no_api_spa_fallback():
     )
     assert backend["env"]["PUBLIC_DEMO_MODE"] == "true"
     assert backend["env"]["DEMO_COOKIE_SECURE"] == "true"
-    assert backend["env"]["PAYPAL_SANDBOX_ENABLED"] == "false"
+    assert "PAYPAL_SANDBOX_ENABLED" not in backend["env"]  # Python defaults off.
     assert backend["env"]["PUBLIC_WEBHOOKS_ENABLED"] == "false"
     # prepare_vercel.py replaces the initial placeholder with an approved origin.
     assert len(frontend["rewrites"]) == 1

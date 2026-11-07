@@ -1,5 +1,10 @@
 # Neon runtime permissions
 
+**Pending optional grants:** [hosted sandbox checkout](hosted-sandbox-payments.md#pending-owner-grants--not-applied)
+prepares an explicit least-privilege payment grant script. It has not been applied
+to Neon. The applied grant inventory below remains unchanged; opting in before
+those grants exist fails readiness.
+
 Applied 2026-11-05 to project `beforepay-demo` (`super-hat-76778640`), branch
 `production` (`br-shy-dawn-b3vw2kgo`), database `beforepay_demo_2026` only.
 Revision remains `0015_demo_templates`. Migration and table ownership stays with

@@ -47,6 +47,7 @@ client_secret*.json
 
 # Database exports and local database files; migrations are Python source.
 *.sql
+!/backend/scripts/grant_demo_sandbox_payments.sql
 *.sql.gz
 *.sql.bz2
 *.sql.xz

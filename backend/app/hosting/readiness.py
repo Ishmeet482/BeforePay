@@ -68,6 +68,7 @@ def require_public_database(session, settings):
             for row in catalogue
         )
         safe_role = True
+        payment_role = True
         if settings.vercel:
             check = "runtime_privileges"
             safe_role = session.scalar(
@@ -83,6 +84,21 @@ def require_public_database(session, settings):
                 FROM pg_roles WHERE rolname=current_user
             """)
             )
+            if settings.public_sandbox_payments_enabled:
+                check = "payment_runtime_privileges"
+                payment_role = session.scalar(
+                    text("""
+                    SELECT has_table_privilege(current_user,
+                          'payment_attempts', 'INSERT')
+                      AND has_table_privilege(current_user, 'payment_events', 'INSERT')
+                      AND has_table_privilege(current_user,
+                          'sandbox_receipts', 'INSERT')
+                      AND bool_and(has_column_privilege(current_user,
+                          'payment_attempts', col, 'UPDATE'))
+                    FROM unnest(ARRAY['order_id','capture_id','status','error_code',
+                        'capture_requested_at','updated_at']) AS col
+                    """)
+                )
         checks = {
             "database_identity": name == settings.public_demo_database,
             "migration_revision": revision == REVISION,
@@ -92,6 +108,7 @@ def require_public_database(session, settings):
             "admission_control": control == 1,
             "ownership_column": owner_column == 1,
             "runtime_privileges": bool(safe_role),
+            "payment_runtime_privileges": bool(payment_role),
             "template_catalogue": catalogue_valid,
         }
         if all(checks.values()):

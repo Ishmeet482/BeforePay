@@ -68,18 +68,22 @@ def get_eligibility(booking_id: UUID, session: DatabaseSession):
                 *error.detail.get("blockers", []),
             ],
         )
+    settings = get_settings()
+    execution_allowed = (
+        not settings.public_demo_mode or settings.public_sandbox_payments_enabled
+    )
     return {
         "eligible": not blockers,
         "blockers": blockers,
         "context": state["context"] if state else None,
         "fingerprint": state["fingerprint"] if state else None,
-        "sandbox_configured": configured() and not get_settings().public_demo_mode,
-        "payment_execution_allowed": not get_settings().public_demo_mode,
+        "sandbox_configured": configured() and execution_allowed,
+        "payment_execution_allowed": execution_allowed,
         "payment_notice": (
             "Payments and provider reconciliation are disabled in "
             "the public demo. Existing records are historical captures only."
         )
-        if get_settings().public_demo_mode
+        if not execution_allowed
         else None,
     }
 

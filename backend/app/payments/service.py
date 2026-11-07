@@ -87,7 +87,7 @@ def ensure_no_other_attempt(session, booking_id, approval_id):
 
 
 def create_order(session, booking_id, approval_id, paypal):
-    from app.admission.service import deny_public_payment
+    from app.admission.service import deny_public_payment, reserve
 
     deny_public_payment()
     lock_booking(session, booking_id)
@@ -97,6 +97,13 @@ def create_order(session, booking_id, approval_id, paypal):
         select(PaymentAttempt).where(PaymentAttempt.approval_id == approval_id)
     )
     if attempt is None:
+        reserve(
+            session,
+            "write",
+            "sandbox_payment_attempt",
+            {"approval_id": str(approval_id)},
+            booking_id=booking_id,
+        )
         attempt = PaymentAttempt(
             id=uuid4(),
             booking_id=booking_id,

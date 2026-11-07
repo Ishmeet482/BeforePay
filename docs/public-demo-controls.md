@@ -1,5 +1,10 @@
 # Public demo Phase 2: durable limits and payment denial
 
+**Later sandbox opt-in:** [controlled hosted sandbox payments](hosted-sandbox-payments.md)
+supersedes unconditional payment denial only when explicitly configured. Defaults
+remain off; attempt caps reuse the immutable write-admission ledger. AI controls
+are unchanged, and hosted webhook exposure remains disabled.
+
 Later [Phase 3 hosting preparation](hosting-preparation.md) adds strict public
 settings/readiness and disables public webhook exposure by default. Its hosted
 default-off AI/no-payment-secret policy supersedes the earlier optional public

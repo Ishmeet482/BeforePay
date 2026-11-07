@@ -29,6 +29,9 @@ class Settings(BaseSettings):
     vercel: bool = False
     public_demo_database: str = ""
     public_webhooks_enabled: bool = False
+    public_sandbox_payments_enabled: bool = False
+    demo_payment_attempts_global: int = Field(default=20, ge=0, le=100)
+    demo_payment_attempts_per_session: int = Field(default=1, ge=0, le=3)
     db_pool_size: int = Field(default=2, ge=2, le=4)
     db_max_overflow: int = Field(default=0, ge=0, le=2)
     db_pool_timeout: int = Field(default=3, ge=1, le=5)
@@ -146,11 +149,27 @@ class Settings(BaseSettings):
             raise ValueError(
                 "Public resource limits exceed the supported safety ceiling"
             )
+        if self.public_sandbox_payments_enabled and not (
+            self.paypal_environment == "sandbox"
+            and self.paypal_sandbox_enabled
+            and self.paypal_sandbox_client_id.strip()
+            and self.paypal_sandbox_client_secret
+            and self.paypal_sandbox_client_secret.get_secret_value().strip()
+            and self.paypal_sandbox_merchant_id.strip()
+        ):
+            raise ValueError(
+                "Public sandbox opt-in requires complete sandbox configuration"
+            )
         if self.vercel and (
-            self.paypal_sandbox_enabled
-            or self.paypal_sandbox_client_secret
-            or self.paypal_sandbox_client_id
-            or self.public_webhooks_enabled
+            self.public_webhooks_enabled
+            or (
+                not self.public_sandbox_payments_enabled
+                and (
+                    self.paypal_sandbox_enabled
+                    or self.paypal_sandbox_client_secret
+                    or self.paypal_sandbox_client_id
+                )
+            )
         ):
             raise ValueError(
                 "Hosting requires payment secrets absent and webhooks disabled"

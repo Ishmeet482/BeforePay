@@ -35,7 +35,7 @@ change anything.
 | 5 | Buyer → Merchant | Explicitly compare saved versions. Request **Suggest clarification** beside a discrepancy; switch views to reply against that saved question. |
 | 6 | Merchant → Buyer | Correct the proposal and run a fresh comparison. **Review correction** and record review only when backend conditions pass; this is not checkout approval. |
 | 7 | Merchant / Buyer | Explicitly **Check policy consistency**. Prepare and separately approve source-bound cancellation rules in each relevant view; preview a cancellation date/time. |
-| 8 | Buyer | Inspect checkout blockers. Only separately configured local sandbox checkout can approve payment, create/capture an order and issue a linked receipt. Public-demo execution is disabled. |
+| 8 | Buyer | Inspect checkout blockers and separately approve the exact checkout bundle. Local sandbox checkout or explicitly opted-in hosted sandbox checkout can create/capture an order and issue a verified receipt. Public payments default off; see [controlled sandbox setup](docs/hosted-sandbox-payments.md). |
 
 Opening screens, loading samples or switching views never starts AI, comparisons,
 approvals or payments. Unconfigured actions stay blocked; no fabricated fallback
@@ -61,7 +61,7 @@ flowchart TB
     Browser --> Proxy --> API --> Services
     Services --> DB
     Services -. "local opt-in; hosted AI off" .-> Gemini
-    Services -. "public payment execution denied" .-> PayPal
+    Services -. "public sandbox opt-in; otherwise denied" .-> PayPal
     PayPal -.-> Webhook --> API
 ```
 
@@ -118,9 +118,11 @@ These records are separate from mocked browser receipts and are not imported int
 public sessions. [Sandbox guide](docs/paypal-sandbox.md), [webhook design](docs/paypal-webhooks.md)
 and [delivery evidence limits](docs/paypal-webhook-verification-2026-11-02.md).
 
-**Public mode:** SDK/client configuration, order creation, capture and provider
-reconciliation are denied server-side. Prepared hosted webhooks are disabled;
-runtime cannot write payment records. No live-money mode or refund execution exists.
+**Public mode defaults:** SDK/client configuration, order creation, capture and
+provider reconciliation are denied server-side. An explicit [hosted sandbox
+opt-in](docs/hosted-sandbox-payments.md) adds durable attempt limits and requires
+separately authorised runtime payment grants, which remain unapplied. Hosted
+webhooks stay disabled. No live-money mode or refund execution exists.
 
 ### APIMatic: development guidance
 

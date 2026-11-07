@@ -1,5 +1,11 @@
 # Phase 3: Vercel hosting preparation
 
+**Later optional increment:** [controlled hosted sandbox payments](hosted-sandbox-payments.md)
+adds a default-off opt-in, durable attempt caps and separately prepared minimal
+runtime grants. Earlier unconditional public-payment-ban statements below describe
+the original checkpoint. Hosted webhooks remain disabled; no grants/configuration
+were applied by that increment.
+
 Prepared locally on 2026-11-05. **No deployment/provisioning, development migration,
 credential change or Gemini/PayPal call.** Migration `0015_demo_templates` remains
 unapplied to development. Existing local records are not a public demo seed.

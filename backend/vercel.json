@@ -9,7 +9,6 @@
   "env": {
     "PUBLIC_DEMO_MODE": "true",
     "DEMO_COOKIE_SECURE": "true",
-    "PAYPAL_SANDBOX_ENABLED": "false",
     "PUBLIC_WEBHOOKS_ENABLED": "false"
   }
 }
