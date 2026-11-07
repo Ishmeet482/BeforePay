@@ -1,6 +1,7 @@
 # BeforePay demo guide
 
-For the current 3–4 minute presentation, use the [read-only readiness checklist
+For the user-reported hosted walkthrough, see the [manual observations below](#user-reported-hosted-walkthrough--2026-11-07).
+For the historical local 3–4 minute presentation, use the [read-only readiness checklist
 and existing-booking scene plan](demo-readiness.md). It separates historical
 clarification/correction scenes from an existing real sandbox receipt and identifies
 the current stale-comparison/missing-rule blockers. No new AI/payment is required.
@@ -8,9 +9,54 @@ the current stale-comparison/missing-rule blockers. No new AI/payment is require
 Current entry: use **Log in** or **Log in by role** and the displayed
 [public demo credentials](demo-login.md). Roles remain simulated;
 [server sessions](demo-sessions.md) now isolate each anonymous workspace. Both
-roles share that session's bookings. Migration 0013 remains unapplied; the existing
-local-booking scene inventory predates isolation and cannot be assigned to new
-public sessions. Real-person authentication remains unsupported.
+roles share that session's bookings. The existing local-booking scene inventory
+predates isolation and cannot be assigned to new public sessions. Its unapplied
+migration notice describes that local preparation checkpoint, not the hosted
+database. Real-person authentication remains unsupported.
+
+## User-reported hosted walkthrough — 2026-11-07
+
+**Evidence: manual observations reported by the user, not an automated test run
+or an independent database/provider audit.** The report covers the hosted flow
+below; it does not certify all versions, sessions, browsers or error paths.
+
+| Stage | Reported observation | Evidence boundary |
+| --- | --- | --- |
+| Sources and agreement | Extraction completed. Agreement version 1 and both source acknowledgements loaded after refresh. | Successful extraction/review was observed; intermittent setup errors also occurred. |
+| Deposit comparison | AI detected the merchant's deposit-refundability change. | This is one reported comparison, not model-accuracy evidence or a checkout approval. |
+| Clarification and reply | The clarification/reply flow was completed. | A merchant response remains unverified resolution; it cannot change terms or approve checkout. |
+| Correction and comparison | Correction review was recorded and the fresh comparison matched. | Correction review applies to its saved context; it is separate from rule and checkout approvals. |
+| Buyer and merchant rules | AI-proposed rules needed manual refund-allocation corrections; the corrected buyer and merchant rules were explicitly approved. | Human correction and separate approvals were required. Do not describe the original AI proposals as correct. |
+| Cancellation | Cutoff previews were exercised after rule correction and approval. | Python calculates from approved rules. This report supplies no exact cutoff timestamps or numeric preview outputs; do not substitute values from the separate local example. No cancellation or refund execution is claimed. |
+| Checkout | Exact checkout approval was completed. | Approval is not payment. Public-demo payment execution remains disabled; this walkthrough produced no claimed capture or receipt. |
+
+### Observed errors and remaining limitations
+
+- **Two AI refund-allocation errors were reported.** The exact incorrect component
+  allocations and raw outputs were not supplied in this report. Manual correction
+  preceded rule approval; neither the cause nor a model/prompt fix is established.
+  This is a reason to review each proposed rental-fee/deposit allocation against
+  the saved clauses, not evidence that AI calculates money.
+- **Intermittent `public_setup_required` errors cleared on refresh.** The latest
+  Agreement review refresh loaded version 1 and both source acknowledgements.
+  No failing Network request or sanitised runtime exception was captured, so the
+  failing GET/POST, exact guard and root cause remain unresolved. Recovery on
+  refresh is an observation, not a diagnosed or fixed defect, and is not a reason
+  to retry AI or payment actions automatically. If it recurs, capture the request
+  method, endpoint suffix, HTTP status, full `detail.code`/`detail.message`, and
+  sanitised Vercel exception class/SQLSTATE; omit cookies, tokens and source text.
+- This hosted report is separate from the earlier local sandbox captures and
+  [webhook audit](paypal-webhook-verification-2026-11-02.md). Existing local sandbox
+  receipts are historical provider-backed records; browser-fixture receipts are
+  mocked. Neither establishes a payment in this hosted walkthrough.
+
+This documentation update reran no tests, made no Gemini/PayPal calls and changed
+no hosted records. Existing automated checks remain the separately documented
+mocked/offline evidence; they do not reproduce these live observations or resolve
+the reported failures. Do not claim general AI accuracy or production readiness
+from this walkthrough. See [hosting follow-up](hosting-preparation.md#user-reported-hosted-checkpoint--2026-11-07).
+
+## General walkthrough and evidence boundaries
 
 **Know what you’re agreeing to, before you pay.**
 

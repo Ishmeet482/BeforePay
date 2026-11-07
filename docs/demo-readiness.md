@@ -1,5 +1,15 @@
 # BeforePay: 3 minute 45 second demo checklist
 
+**Current hosted evidence:** the user subsequently reported extraction, deposit-change
+detection, clarification/reply, correction review, a matching comparison, manually
+corrected and separately approved buyer/merchant rules, cutoff previews and exact
+checkout approval. See the [2026-11-07 hosted walkthrough](demo.md#user-reported-hosted-walkthrough--2026-11-07)
+for the two AI refund-allocation errors and intermittent refresh-cleared
+`public_setup_required` errors; their causes remain unresolved. Payment execution
+remains disabled. These are manual observations, not new test results. The local
+record inventory and scene plan below remain historical and must not be presented
+as the hosted session's bookings or receipt.
+
 **Session-isolation update:** this is a historical local-record inventory from
 before [Phase 1](demo-sessions.md). Migration 0013 remains unapplied. Once applied,
 existing bookings remain unowned and cannot be opened by new public/demo sessions.

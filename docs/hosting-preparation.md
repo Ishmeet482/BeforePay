@@ -4,6 +4,33 @@ Prepared locally on 2026-11-05. **No deployment/provisioning, development migrat
 credential change or Gemini/PayPal call.** Migration `0015_demo_templates` remains
 unapplied to development. Existing local records are not a public demo seed.
 
+## User-reported hosted checkpoint — 2026-11-07
+
+The preparation-only statements below describe earlier checkpoints. The user has
+since reported a hosted walkthrough through extraction, deposit-change detection,
+clarification/reply, correction review, a fresh matching comparison, manually
+corrected and approved buyer/merchant rules, cutoff previews and exact checkout
+approval. See [manual observations and limitations](demo.md#user-reported-hosted-walkthrough--2026-11-07).
+This is user-reported manual evidence, separate from disposable-database and
+mocked-provider tests; no tests were rerun for this documentation update.
+
+Two AI refund-allocation errors required human correction before rule approval.
+Their exact erroneous outputs and causes are not established here. Intermittent
+`public_setup_required` errors cleared on refresh; the latest Agreement review
+loaded version 1 and both source acknowledgements. No failing request/exception
+was captured, so no specific configuration, grant or code fix is justified.
+The code uses this error for both settings validation and database-readiness
+failure; the code alone does not identify which failed in this hosted observation.
+Capture the method, endpoint, status, full safe error message and sanitised runtime
+exception/SQLSTATE if it recurs. Do not weaken guards or add automatic retries.
+
+Public-demo payment execution remains disabled. Exact checkout approval does not
+establish a capture or receipt. This update changes no hosted settings, grants or
+records and makes no provider calls. Remaining hosted routing/cookie/cache,
+cross-session isolation, quota, reliability and account gates below are not all
+certified by this single walkthrough. AI correctness and intermittent readiness
+failures remain open limitations.
+
 ## Prepared architecture and files
 
 Two projects from the same repository: frontend root `frontend/`, backend root
@@ -31,9 +58,9 @@ Two projects from the same repository: frontend root `frontend/`, backend root
   operator scripts. Migrations/setup are operator commands, never runtime startup
   or build hooks. Frontend ignores local environment files too. No credentials or
   provider tokens belong in `VITE_*`, rewrites, repo config or build logs.
-- The committed external destination is deliberately non-resolving:
-  `https://backend-not-configured.invalid`. It must be prepared with the actual
-  backend origin only after account/project access is authorised:
+- The committed rewrite now targets `https://before-pay-three.vercel.app/api/:path*`.
+  The original preparation used `https://backend-not-configured.invalid`; when
+  deliberately changing the backend, prepare the actual origin with:
 
 ```sh
 # From repository root; edits only a non-secret local JSON rewrite.
@@ -42,7 +69,8 @@ python3 scripts/prepare_vercel.py --backend-origin https://YOUR-BACKEND-HOST
 
 This command does not deploy, provision or contact that host. It accepts only an
 HTTPS origin without credentials, path, query or nonstandard port. No actual
-hostname was configured in this task. Review the generated diff before publishing.
+hostname was configured at the original preparation checkpoint. Review the generated
+diff before publishing; the committed target above records the subsequent setup.
 
 ### Cookie, origin and access boundary
 
