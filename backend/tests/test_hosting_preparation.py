@@ -255,9 +255,9 @@ def test_separate_bounded_pools_and_transaction_timeouts(isolated_hosting):
         {"demo_max_sessions": 1_000_000},
         {"demo_max_writes": 1_000_000},
         {"vercel": True, "public_demo_mode": False},
-        {"vercel": True, "demo_ai_calls_per_day": 1},
-        {"vercel": True, "gemini_api_key": "synthetic-only"},
         {"vercel": True, "paypal_sandbox_enabled": True},
+        {"vercel": True, "paypal_sandbox_client_id": "synthetic-only"},
+        {"vercel": True, "paypal_sandbox_client_secret": "synthetic-only"},
         {"vercel": True, "public_webhooks_enabled": True},
     ],
 )
@@ -272,6 +272,72 @@ def test_invalid_public_configuration_fails_closed(change):
     with pytest.raises(ValidationError) as error:
         Settings(_env_file=None, **values)
     assert "synthetic@" not in str(error.value)
+
+
+@pytest.mark.parametrize(
+    "ai_settings",
+    [
+        {},
+        {"gemini_api_key": "synthetic-only"},
+        {"demo_ai_calls_per_day": 8},
+        {"demo_ai_tokens_per_day": 800_000},
+        {"demo_ai_tokens_per_minute": 200_000},
+        {
+            "gemini_api_key": "synthetic-only",
+            "demo_ai_calls_per_day": 8,
+            "demo_ai_calls_per_session": 8,
+            "demo_ai_tokens_per_day": 800_000,
+            "demo_ai_tokens_per_session": 800_000,
+            "demo_ai_tokens_per_minute": 200_000,
+        },
+    ],
+)
+def test_vercel_allows_operator_ai_settings_without_enabling_payments(ai_settings):
+    settings = Settings(
+        _env_file=None,
+        vercel=True,
+        public_demo_mode=True,
+        public_demo_database="beforepay_demo",
+        database_url="postgresql+psycopg://synthetic:synthetic@db.example/beforepay_demo?sslmode=require",
+        demo_allowed_origins=["https://beforepay.example"],
+        **ai_settings,
+    )
+    assert not settings.paypal_sandbox_enabled
+    assert not settings.public_webhooks_enabled
+    assert settings.demo_ai_concurrent_global == 1
+    assert settings.demo_ai_concurrent_session == 1
+    for field in (
+        "demo_ai_calls_per_day",
+        "demo_ai_tokens_per_day",
+        "demo_ai_tokens_per_minute",
+    ):
+        assert getattr(settings, field) == ai_settings.get(field, 0)
+
+
+@pytest.mark.parametrize(
+    "unsafe",
+    [
+        {"paypal_sandbox_enabled": True},
+        {"paypal_sandbox_client_id": "synthetic-only"},
+        {"paypal_sandbox_client_secret": "synthetic-only"},
+        {"public_webhooks_enabled": True},
+    ],
+)
+def test_budgeted_vercel_ai_still_rejects_payments_and_webhooks(unsafe):
+    with pytest.raises(ValidationError, match="payment secrets absent"):
+        Settings(
+            _env_file=None,
+            vercel=True,
+            public_demo_mode=True,
+            public_demo_database="beforepay_demo",
+            database_url="postgresql+psycopg://synthetic:synthetic@db.example/beforepay_demo?sslmode=require",
+            demo_allowed_origins=["https://beforepay.example"],
+            gemini_api_key="synthetic-only",
+            demo_ai_calls_per_day=8,
+            demo_ai_tokens_per_day=800_000,
+            demo_ai_tokens_per_minute=200_000,
+            **unsafe,
+        )
 
 
 def test_bad_settings_returns_private_503(monkeypatch):
@@ -290,7 +356,17 @@ def test_vercel_configs_and_no_api_spa_fallback():
     backend = json.loads((root / "backend/vercel.json").read_text())
     frontend = json.loads((root / "frontend/vercel.json").read_text())
     assert backend["functions"]["app/main.py"]["maxDuration"] == 90
-    assert backend["env"]["DEMO_AI_CALLS_PER_DAY"] == "0"
+    assert (
+        not {
+            "DEMO_AI_CALLS_PER_DAY",
+            "DEMO_AI_TOKENS_PER_DAY",
+            "DEMO_AI_TOKENS_PER_MINUTE",
+        }
+        & backend["env"].keys()
+    )
+    assert backend["env"]["PUBLIC_DEMO_MODE"] == "true"
+    assert backend["env"]["DEMO_COOKIE_SECURE"] == "true"
+    assert backend["env"]["PAYPAL_SANDBOX_ENABLED"] == "false"
     assert backend["env"]["PUBLIC_WEBHOOKS_ENABLED"] == "false"
     # prepare_vercel.py replaces the initial placeholder with an approved origin.
     assert len(frontend["rewrites"]) == 1

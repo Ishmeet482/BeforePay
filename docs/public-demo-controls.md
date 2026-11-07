@@ -2,8 +2,10 @@
 
 Later [Phase 3 hosting preparation](hosting-preparation.md) adds strict public
 settings/readiness and disables public webhook exposure by default. Its hosted
-zero-AI/no-payment-secret policy supersedes the earlier optional public webhook
-exception described below; existing local controlled verification remains intact.
+default-off AI/no-payment-secret policy supersedes the earlier optional public
+webhook exception below. A later prerequisite permits explicitly budgeted hosted
+AI configuration without changing this admission layer; see the hosting guide.
+Existing local controlled verification remains intact.
 
 Implemented locally; no deployment, provisioning or provider calls performed.
 Migration **0014_public_admission** was tested only in disposable PostgreSQL.

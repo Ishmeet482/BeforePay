@@ -9,9 +9,6 @@
   "env": {
     "PUBLIC_DEMO_MODE": "true",
     "DEMO_COOKIE_SECURE": "true",
-    "DEMO_AI_CALLS_PER_DAY": "0",
-    "DEMO_AI_TOKENS_PER_DAY": "0",
-    "DEMO_AI_TOKENS_PER_MINUTE": "0",
     "PAYPAL_SANDBOX_ENABLED": "false",
     "PUBLIC_WEBHOOKS_ENABLED": "false"
   }

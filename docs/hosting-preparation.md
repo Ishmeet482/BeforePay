@@ -73,8 +73,8 @@ variables in the host's secret/configuration store after authorisation:
 | `DEMO_ALLOWED_ORIGINS` | JSON list of exact real HTTPS frontend origins. No localhost HTTP, wildcards or blanket preview domain. |
 | `DEMO_COOKIE_SECURE` | `true`. |
 | `DEMO_SESSION_TTL_SECONDS` | `2592000` for newly issued 30-day persistent sessions; existing stored expiries are unchanged. Role switching/revisits do not slide expiry. |
-| `DEMO_AI_CALLS_PER_DAY`, `DEMO_AI_TOKENS_PER_DAY`, `DEMO_AI_TOKENS_PER_MINUTE` | All **0**. Hosted preparation rejects nonzero shared AI allowances. |
-| `GEMINI_API_KEY` | Absent/empty. Hosted preparation rejects an installed key. No fallback/model change. |
+| `DEMO_AI_CALLS_PER_DAY`, `DEMO_AI_TOKENS_PER_DAY`, `DEMO_AI_TOKENS_PER_MINUTE` | Default **0**. Explicit operator budgets are now accepted; actual hosted enablement is a separate step. All three must permit a reservation. |
+| `GEMINI_API_KEY` | Default absent/empty. May be installed privately for separately authorised budgeted AI; no key was installed by the prerequisite change. No fallback/model change. |
 | `PAYPAL_SANDBOX_ENABLED` | `false`; no PayPal client ID/secret installed. Public payment execution remains denied independently. |
 | `PUBLIC_WEBHOOKS_ENABLED` | `false`. Hosted preparation refuses enabling it in this phase. |
 | `DB_POOL_SIZE`, `DB_MAX_OVERFLOW`, `DB_POOL_TIMEOUT` | Defaults 2, 0, 3 seconds; small validated bounds. |
@@ -83,6 +83,23 @@ variables in the host's secret/configuration store after authorisation:
 Frontend needs no database, AI or payment variables. Select **Node 22.x** in project
 settings; build tested with Node 22.23.1. Keep real preview and production origins,
 databases and privileges separate; previews must not inherit privileged data.
+
+On 2026-11-07 the hosted-Gemini prerequisite removed only the four Vercel-specific
+AI vetoes (key and three shared budgets) and the three forced-zero AI entries from
+`backend/vercel.json`. Python defaults and sanitised examples remain zero, so
+admission is still disabled until explicitly configured. No provider, admission,
+ownership, concurrency, circuit-breaker, timeout or retry code changed. PayPal
+enablement/client credentials and hosted webhooks remain forbidden on Vercel.
+This change installs no credential or dashboard variable and makes no live call;
+earlier zero-AI preparation statements describe the original checkpoint.
+
+Focused prerequisite verification: **69 checks passed** across hosting settings,
+public admission and payment-denial suites, with six existing dependency warnings.
+They cover accepted default/partial/budgeted AI settings, rejection of payment/
+webhook settings even alongside AI, all AI entry-point admission, concurrent and
+durable limits, circuit failures and direct payment denial. Providers were mocked
+and database checks used disposable local PostgreSQL. Ruff lint/format and diff
+whitespace checks passed; no live model or hosted configuration was tested.
 
 Invalid settings return a private, generic 503 before body parsing/provider work,
 without printing input values or connection strings. Every public database request

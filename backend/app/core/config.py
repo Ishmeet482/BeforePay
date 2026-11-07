@@ -147,18 +147,13 @@ class Settings(BaseSettings):
                 "Public resource limits exceed the supported safety ceiling"
             )
         if self.vercel and (
-            self.gemini_api_key
-            or self.paypal_sandbox_enabled
+            self.paypal_sandbox_enabled
             or self.paypal_sandbox_client_secret
             or self.paypal_sandbox_client_id
             or self.public_webhooks_enabled
-            or self.demo_ai_calls_per_day
-            or self.demo_ai_tokens_per_day
-            or self.demo_ai_tokens_per_minute
         ):
             raise ValueError(
-                "Hosting preparation requires AI off, payment secrets absent "
-                "and webhooks disabled"
+                "Hosting requires payment secrets absent and webhooks disabled"
             )
         return self
 
