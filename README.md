@@ -40,6 +40,10 @@ change anything.
 | 7 | Merchant / Buyer | Explicitly **Check policy consistency**. Prepare and separately approve source-bound cancellation rules in each relevant view; preview a cancellation date/time. |
 | 8 | Buyer | Inspect checkout blockers and separately approve the exact checkout bundle. Local sandbox checkout or explicitly opted-in hosted sandbox checkout can create/capture an order and issue a verified receipt. Public payments default off; see [controlled sandbox setup](docs/hosted-sandbox-payments.md). |
 
+Creation offers rental-category naming guidance and a custom title; it adds no
+equipment or evidence. Actual terms remain source-backed. Camera examples are
+explicit, synthetic form loads. See [UI refinement, compatibility and screenshots](docs/rental-ui-refinement-2026-11-08.md).
+
 Opening screens, loading samples or switching views never starts AI, comparisons,
 approvals or payments. Unconfigured actions stay blocked; no fabricated fallback
 results appear. Without Gemini, a fresh booking supports session/booking/evidence

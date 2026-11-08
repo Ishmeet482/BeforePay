@@ -16,6 +16,8 @@ import { parseWorkspaceRoute, workspaceRoute, workspaceNext, type Workspace } fr
 import MerchantClarifications from './MerchantClarifications'
 import DemoLogin from './DemoLogin'
 import DemoIdentity from './DemoIdentity'
+import Brand from './Brand'
+import { rentalCategories, type RentalCategory } from './rental-categories'
 import { readDemoRole, retainDemoRole } from './demo-session'
 import { enterServerSession, leaveServerSession } from './server-session'
 
@@ -81,6 +83,7 @@ export default function App() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
   const [title, setTitle] = useState('')
+  const [rentalCategory, setRentalCategory] = useState<RentalCategory | ''>('')
   const [creating, setCreating] = useState(false)
   const [creationNeedsRefresh, setCreationNeedsRefresh] = useState(false)
   const [createdId, setCreatedId] = useState('')
@@ -98,7 +101,7 @@ export default function App() {
     if (creatingRef.current || loading || creationNeedsRefresh || !title.trim() || Array.from(title).length > 200) return
     creatingRef.current = true; setCreating(true); setError('')
     if (selected && bookings.some(b => b.id === selected) && !window.confirm('Create another booking? Unsaved edits in the previously opened booking will be discarded.')) { creatingRef.current = false; setCreating(false); return }
-    try { const b = await post<Booking>('/bookings', { title }); setBookings(old => [b, ...old]); setTitle(''); setCreateOpen(false); selectedRef.current = b.id; setSelected(b.id); setCreatedId(b.id); setEntry(old => ({ step: 'sources', serial: old.serial + 1 })); window.location.hash = workspaceRoute('buyer', b.id) }
+    try { const b = await post<Booking>('/bookings', { title }); setBookings(old => [b, ...old]); setTitle(''); setRentalCategory(''); setCreateOpen(false); selectedRef.current = b.id; setSelected(b.id); setCreatedId(b.id); setEntry(old => ({ step: 'sources', serial: old.serial + 1 })); window.location.hash = workspaceRoute('buyer', b.id) }
     catch (e) { setCreationNeedsRefresh(true); setError(`${intakeError(e)} Refresh the saved booking list and check whether creation succeeded before retrying.`) }
     finally { creatingRef.current = false; setCreating(false) }
   }
@@ -159,7 +162,7 @@ export default function App() {
     const request = login!
     if (request.buyerOnly && role !== 'buyer') return
     const fresh = await enterServerSession(() => (!selected && !title.trim()) || window.confirm('The old isolated session has ended. Start a new empty workspace? Unsaved work will be discarded; old saved records remain preserved and inaccessible to this new session.'))
-    if (fresh) { setBookings([]); setLoaded(false); setSelected(''); selectedRef.current = ''; setTitle(''); setCreatedId('') }
+    if (fresh) { setBookings([]); setLoaded(false); setSelected(''); selectedRef.current = ''; setTitle(''); setRentalCategory(''); setCreatedId('') }
     const id = parseWorkspaceRoute(request.hash).id
     const hash = workspaceRoute(role, id || '')
     identityRef.current = role; setIdentity(role)
@@ -174,7 +177,7 @@ export default function App() {
     try { await leaveServerSession() } catch (e) { setSessionNotice(intakeError(e)); return }
     focusAfterSignOut.current = true
     retainDemoRole(null); identityRef.current = null; setIdentity(null); setLogin(null)
-    setSelected(''); selectedRef.current = ''; setCreatedId(''); setCreationNeedsRefresh(false); setBookings([]); setLoaded(false); setTitle(''); setCreateOpen(false); setError(''); setSessionNotice('')
+    setSelected(''); selectedRef.current = ''; setCreatedId(''); setCreationNeedsRefresh(false); setBookings([]); setLoaded(false); setTitle(''); setRentalCategory(''); setCreateOpen(false); setError(''); setSessionNotice('')
     lastRoute.current = 'home'; setRoute('home'); window.location.hash = ''
   }
   const inBooking = !!identity && identity === workspace && route === `bookings/${selected}` && !!selected && bookings.some(b => b.id === selected)
@@ -182,7 +185,7 @@ export default function App() {
   useEffect(() => { document.title = inBookings ? `BeforePay | ${workspace === 'buyer' ? 'Buyer' : 'Merchant'} ${inBooking ? 'workspace' : 'dashboard'}` : 'BeforePay | Know what you’re agreeing to, before you pay.' }, [inBookings, inBooking, workspace])
   const booking = bookings.find(b => b.id === selected)
   return <div className="app-shell" data-workspace={inBookings ? workspace : undefined}><a className="skip-link" href="#main-content">Skip to content</a>
-    <header className={`app-header ${inBookings ? 'private-header' : 'public-header'}`}><a className="wordmark" href="#"><span className="brand-mark" aria-hidden="true">bp</span>BeforePay</a><nav className="global-nav" aria-label="Product navigation"><a href="#" aria-current={!inBookings ? 'page' : undefined}>How it works</a>{inBookings ? <a className="dashboard-link" href={`#${workspaceRoute(identity!)}`}>Dashboard</a> : <button className="primary login-entry" onClick={() => setLogin({ role: identity || 'buyer', hash: workspaceRoute(identity || 'buyer') })}>Log in</button>}</nav>{inBookings && <><span className="header-role">{workspace === 'buyer' ? 'Buyer' : 'Merchant'} demo view</span><span className="environment-label">Sandbox · test funds only<small>No real authentication</small></span></>}</header>
+    <header className={`app-header ${inBookings ? 'private-header' : 'public-header'}`}><a className="wordmark" href="#"><Brand /></a><nav className="global-nav" aria-label="Product navigation"><a href="#" aria-current={!inBookings ? 'page' : undefined}>How it works</a>{inBookings ? <a className="dashboard-link" href={`#${workspaceRoute(identity!)}`}>Dashboard</a> : <button className="primary login-entry" onClick={() => setLogin({ role: identity || 'buyer', hash: workspaceRoute(identity || 'buyer') })}>Log in</button>}</nav>{inBookings && <><span className="header-role">{workspace === 'buyer' ? 'Buyer' : 'Merchant'} demo view</span><span className="environment-label">Sandbox · test funds only<small>No real authentication</small></span></>}</header>
     {!inBookings && <EntryPage onLogin={() => setLogin({ role: identity || 'buyer', hash: workspaceRoute(identity || 'buyer') })} onStart={startBuyerBooking} />}
     {sessionNotice && <p className="notice attention" role="status">{sessionNotice}</p>}
     <div className="booking-session" hidden={!inBooking}>{identity && selected && booking && <BookingJourney created={createdId === booking.id} onSignOut={signOut} workspace={workspace} onSwitch={switchWorkspace} key={selected} booking={booking} epoch={epoch} entry={entry} active={inBooking} onBack={() => { window.location.hash = workspaceRoute(workspace) }} />}</div>
@@ -191,7 +194,7 @@ export default function App() {
       <section className={`dashboard-guide ${workspace}`} aria-label={workspace === 'buyer' ? 'Buyer tasks' : 'Merchant tasks'}><h2>{workspace === 'buyer' ? 'Know your terms before you pay.' : 'Prepare a final booking the buyer can review.'}</h2><p>{workspace === 'buyer' ? 'Start with your quotation and messages. Confirm the exact agreement, review the merchant’s changes, then approve sandbox checkout separately.' : 'Use the buyer-confirmed terms as reference. Save your independent final proposal, review its cancellation rules and follow the buyer handoff.'}</p><ol>{(workspace === 'buyer' ? ['Evidence and agreement review','Differences and cancellation consequences','Checkout approval and receipt'] : ['Buyer reference and final proposal','Merchant policy preparation and review','Buyer handoff and recorded payment']).map(task => <li key={task}>{task}</li>)}</ol></section>
       <div className="dashboard-list-heading" tabIndex={-1}><h2>{workspace === 'buyer' ? 'Rentals and next actions' : 'Proposal and policy work queue'}</h2><p>Shared bookings · statuses below come from saved records.</p></div>
       {loaded && !loading && route !== 'bookings' && route !== 'bookings/new' && !inBooking && <p className="notice attention" role="alert">The requested booking is not in the saved list. Choose an available booking below or create a new one.</p>}
-      {createOpen && identity === "buyer" && workspace === "buyer" && <section className="create-sheet"><h2>A new rental booking</h2><p>Start with a name. Add your quotation and messages next.</p><form onSubmit={e => void createBooking(e)}><label>Booking title<input autoFocus value={title} maxLength={200} required disabled={creating} placeholder="e.g. Camera kit · November shoot" onChange={e => setTitle(e.target.value)} /></label><Action className="primary" disabled={creating || loading || creationNeedsRefresh || !title.trim()} reason={creating ? 'Creating your booking…' : loading ? 'Wait for the saved booking list to finish loading.' : creationNeedsRefresh ? 'Refresh the saved list and check for your booking before retrying.' : 'Enter a booking name to continue.'}>Create booking</Action></form></section>}
+      {createOpen && identity === "buyer" && workspace === "buyer" && <section className="create-sheet"><h2>A new rental booking</h2><p>Name the rental, then add your quotation and messages. No equipment or terms are added automatically.</p><form onSubmit={e => void createBooking(e)}><label>Rental category · setup guide<select value={rentalCategory} disabled={creating} aria-describedby="rental-category-help" onChange={e => setRentalCategory(e.target.value as RentalCategory | '')}><option value="">Choose a rental category</option>{Object.entries(rentalCategories).map(([key, category]) => <option key={key} value={key}>{category.label}</option>)}</select><small id="rental-category-help">Guides naming only; category is not stored as an agreement term. Saved sources establish the actual items.</small></label><label>Booking title<input autoFocus value={title} maxLength={200} required disabled={creating} placeholder={rentalCategory ? rentalCategories[rentalCategory].example : 'e.g. Equipment rental · event or project'} aria-describedby="booking-title-help" onChange={e => setTitle(e.target.value)} /><small id="booking-title-help">Use your own equipment names. This title does not create equipment, prices or policies.</small></label><Action className="primary" disabled={creating || loading || creationNeedsRefresh || !title.trim()} reason={creating ? 'Creating your booking…' : loading ? 'Wait for the saved booking list to finish loading.' : creationNeedsRefresh ? 'Refresh the saved list and check for your booking before retrying.' : 'Enter a booking name to continue.'}>Create booking</Action></form></section>}
       {error && <p className="notice error" role="alert">{error}</p>}
       <div className="list-toolbar"><span>{loading ? 'Loading bookings…' : `${bookings.length} saved booking${bookings.length === 1 ? '' : 's'}`}</span><button disabled={loading || creating} onClick={() => void refreshBookings()}>Refresh list</button></div>
       {!!bookings.length && <div className="booking-table" tabIndex={-1}><table className="data-table bookings-table"><caption className="sr-only">Saved bookings, rental dates, inclusive totals, statuses and next actions</caption><colgroup><col className="booking-col-name" /><col className="booking-col-dates" /><col className="booking-col-total" /><col className="booking-col-status" /><col className="booking-col-action" /></colgroup><thead><tr><th scope="col">Booking / equipment</th><th scope="col">{workspace === "buyer" ? "Pickup & return" : "Buyer agreement"}</th><th scope="col" className={workspace === "buyer" ? "numeric" : undefined}>{workspace === "buyer" ? "Inclusive total" : "Merchant proposal / rules"}</th><th scope="col">Current status</th><th scope="col" className="table-actions">Next action</th></tr></thead><tbody>{bookings.map(b => <BookingRow key={b.id} booking={b} epoch={epoch} workspace={workspace} onOpen={step => openBooking(b.id, step)} />)}</tbody></table></div>}

@@ -45,7 +45,7 @@ ul { padding-left: 22px; list-style: disc; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .app-header { min-height: 68px; display: flex; align-items: center; gap: 24px; padding: 10px var(--gutter); background: var(--nav); color: #f9fcf8; border-bottom: 1px solid #345059; position: sticky; top: 0; z-index: 5; }
 .wordmark { display: flex; align-items: center; gap: 10px; background: transparent; border: 0; padding: 0; font-size: 22px; font-weight: 750; letter-spacing: -.06em; color: #f9fcf8; text-decoration: none; }
-.brand-mark { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 5px; background: #d7edbc; color: var(--nav); font-size: 15px; letter-spacing: -.08em; }
+.brand-mark { display: block; width: 34px; height: 34px; flex: 0 0 auto; border-radius: 7px; }
 .product-description { color: var(--muted); font-size: 12px; border-left: 1px solid var(--line); padding-left: 24px; }
 .environment-label { margin-left: auto; font-size: 11px; font-weight: 650; color: #e0efde; text-align: right; }
 .environment-label small { font-size: 10px; color: #b8ccc9; }

@@ -130,6 +130,17 @@ export default function EvidenceWorkspace({ bookingId, onReview }: { bookingId: 
       setMessage(`Draft ${saved.version} saved, unconfirmed.${saved.content.needs_clarification ? ' Missing or conflicting terms need review.' : ' Review the terms before confirming.'}`)
     })
   }
+  async function loadCameraExample(sourceType: 'quotation' | 'message') {
+    if (busy || (unsaved && !window.confirm('Replace unsaved source input with a labelled synthetic camera example? Nothing will be saved automatically.'))) return
+    await act('Loading synthetic example into the form…', async signal => {
+      const templates = await request<{ key: string; original_text: string }[]>('/demo-templates', { signal })
+      const sample = templates.find(t => t.key === (sourceType === 'quotation' ? 'camera-quotation' : 'camera-message'))
+      if (!sample?.original_text) throw new Error('Synthetic example unavailable. Paste your own original source instead.')
+      setMode('text'); setSourceType(sourceType); setText(sample.original_text); setFile(null)
+      if (fileInput.current) fileInput.current.value = ''
+      setMessage('Synthetic camera example loaded into the form only. Review it, then explicitly save if wanted. No evidence saved or AI called.')
+    })
+  }
   async function openReview() {
     if (!draft || busy) return
     // Source inputs remain mounted when opening agreement review.
@@ -147,7 +158,7 @@ export default function EvidenceWorkspace({ bookingId, onReview }: { bookingId: 
   return <section className="workspace" aria-busy={!!busy}>
     <div className="toolbar"><div><h2>Sources & draft</h2><p>Keep the original evidence beside your unconfirmed draft.</p></div><button disabled={!!busy} onClick={() => void act('Refreshing saved sources and drafts…', load)}>Refresh saved</button></div>
     {busy && <p role="status">{busy}</p>}{error && <p className="notice error" role="alert">{error}</p>}{message && <p className="notice success" role="status">{message}</p>}
-    <TaskIntro owner="Buyer evidence" title="Original sources → unconfirmed AI draft → your review">Save quotation or messages, select the evidence Gemini may read, then request a draft. Uploading never generates AI.</TaskIntro>
+    <TaskIntro owner="Buyer evidence" title="Original sources → unconfirmed AI draft → your review">Use the actual item names for any rental category. Save sources, select the evidence Gemini may read, then explicitly request a draft.</TaskIntro>
     {hasAgreement && <p className="notice">Adding evidence or generating another draft requires renewed review. Existing versions and receipt history are retained.</p>}
     <div className="source-layout"><section className="source-inbox"><h3><span className="sequence">1</span> Source inbox</h3><details className="source-intake" open={!sources.length || unsaved}><summary>Add quotation or message</summary>
     <section className="panel"><h3>Save original evidence</h3><form onSubmit={event => void saveSource(event)}>
@@ -155,7 +166,7 @@ export default function EvidenceWorkspace({ bookingId, onReview }: { bookingId: 
         {mode === 'text' ? <><label>Original quotation or message<textarea rows={8} value={text} onChange={e => setText(e.target.value)} aria-invalid={textLength > MAX_TEXT || text.includes('\0')} placeholder="Paste the original wording. Spacing and line breaks are preserved." /></label><p className={textLength > MAX_TEXT ? 'field-error' : 'hint'}>{textLength.toLocaleString()} / 100,000 characters. Original text is saved unchanged.</p></> : <><label>Text-based PDF<input ref={fileInput} type="file" accept="application/pdf,.pdf" onChange={e => setFile(e.target.files?.[0] ?? null)} /></label><p className="hint">Maximum 5 MiB, 100 pages and 100,000 extracted characters. Encrypted PDFs are unsupported; scanned/image-only PDFs require OCR first.</p></>}
         <Action className="primary" type="submit" disabled={!!busy || (mode === 'text' ? !text.trim() || textLength > MAX_TEXT || text.includes('\0') : !file)} reason={busy ? 'Wait for the current upload or request.' : mode === 'pdf' ? 'Choose a text-based PDF first.' : textLength > MAX_TEXT ? 'Reduce the text to 100,000 characters.' : text.includes('\0') ? 'Remove unsupported NUL characters.' : 'Paste the original quotation or message first.'}>Save source</Action>
       </fieldset></form></section>
-    </details><section className="panel source-selection"><h3>Select sources for your draft</h3><p>Checked sources are sent together only when you click Generate AI draft. Choose what Gemini may read. Source acknowledgement happens separately in agreement review.</p>
+    </details><details className="sample-tools source-examples"><summary>Optional synthetic camera example</summary><p>Authored demo sources, not your booking terms. Load into the form only; saving and AI generation stay separate.</p><div className="sample-buttons"><button type="button" disabled={!!busy} onClick={() => void loadCameraExample('quotation')}>Load synthetic quotation · form only</button><button type="button" disabled={!!busy} onClick={() => void loadCameraExample('message')}>Load synthetic message · form only</button></div></details><section className="panel source-selection"><h3>Select sources for your draft</h3><p>Checked sources are sent together only when you click Generate AI draft. Choose what Gemini may read. Source acknowledgement happens separately in agreement review.</p>
       {!sources.length && !busy && <p>No saved sources yet. Paste text or upload a PDF above.</p>}
       {sources.map((s, index) => <SavedSource key={s.id} bookingId={bookingId} source={s} index={index} checked={selected.has(s.id)} disabled={!!busy} onToggle={checked => { setSelected(old => { const next = new Set(old); if (checked) next.add(s.id); else next.delete(s.id); return next }); setMessage('') }} />)}
       <p className={selected.size > MAX_SOURCES ? 'field-error' : 'hint'}>{selected.size} / 20 sources selected. Combined extraction input limit: 200,000 characters.</p>

@@ -108,7 +108,6 @@
   .app-header .environment-label { margin-left: 0; font-size: 13px; color: #f2f6ef; }
   .app-header .environment-label small { font-size: 12px; color: var(--rail-muted); }
   .app-header .global-nav a { font-size: 15px; }
-  .app-header .brand-mark { background: var(--accent-soft); color: var(--nav); }
   .app-header .global-nav a[aria-current=page] { border-color: var(--accent-line); }
   .app-shell :is(.wordmark) { padding: 0; font-size: 23px; }
 
@@ -352,3 +351,47 @@
 [data-workspace] .blocker-list .resolve-link { display: block; margin-top: .35rem; text-align: left; white-space: normal; }
 
 [data-workspace] :is(.policy-consistency,.rule-workbench,.buyer-comparison) { scroll-margin-top: var(--workspace-offset, 100px); }
+
+/* Focused rental setup and calculator alignment; no changes to role colours. */
+.receipt-brand { display: inline-flex; align-items: center; gap: 10px; }
+.create-sheet { max-width: 960px; border-radius: var(--radius); }
+.create-sheet form { display: grid; grid-template-columns: minmax(0,.9fr) minmax(0,1.1fr); gap: 16px 24px; align-items: start; }
+.create-sheet form > label { min-width: 0; }
+.create-sheet form small { display: block; max-width: 56ch; }
+.create-sheet form :is(input,select) { margin-bottom: 8px; }
+.create-sheet form > .action { grid-column: 1/-1; margin: 0; }
+.source-examples { border-bottom: 1px solid var(--line); margin-bottom: 12px; padding-bottom: 8px; }
+.source-examples p { max-width: 60ch; }
+.cancellation-flow, .cancellation-flow.has-result {
+  display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr);
+  max-width: none; gap: 24px; align-items: start;
+}
+.cancellation-flow > :is(.cancellation-start,.cancellation-result) {
+  margin: 0; padding: 24px; border: 1px solid var(--line);
+  border-radius: var(--radius); background: var(--paper); min-width: 0;
+}
+.cancellation-flow h2 { font-size: clamp(23px,2vw,28px); margin-bottom: 12px; }
+.cancellation-flow .eyebrow { margin: 0 0 12px; }
+.cancellation-flow .fields, .cancellation-result .comparison-columns { grid-template-columns: minmax(0,1fr); }
+.cancellation-result .refund-result { padding: 18px 0 0; border-radius: 0; border-bottom: 0; margin: 16px 0 0; }
+.preview-empty { padding: 18px 0 0; border-top: 1px solid var(--line); }
+.preview-empty h3 { font-size: 18px; }
+.preview-empty p { max-width: 46ch; color: var(--muted); }
+.cancellation-result .refund-ledger { margin: 12px 0; }
+.cancellation-result .refund-ledger dd { font-size: clamp(24px,2.5vw,34px); overflow-wrap: anywhere; }
+.policy-status { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; }
+.policy-status > small { flex-basis: 100%; }
+.toolbar { align-items: start; }
+.toolbar > button { flex: 0 0 auto; }
+.toolbar > div { min-width: 0; }
+.fields > label, .comparison-columns > * { min-width: 0; }
+@media(max-width:1023px) {
+  .cancellation-flow, .cancellation-flow.has-result { grid-template-columns: minmax(0,1fr); gap: 20px; }
+  .cancellation-flow.has-result > .cancellation-result { order: 0; }
+}
+@media(max-width:600px) {
+  .create-sheet form { grid-template-columns: minmax(0,1fr); }
+  .cancellation-flow > :is(.cancellation-start,.cancellation-result) { padding: 20px; }
+  .toolbar > button { flex-shrink: 1; }
+  .receipt-brand .brand-mark { width: 30px; height: 30px; }
+}

@@ -1,3 +1,4 @@
+import Brand from './Brand'
 import { useRef, useState } from 'react'
 import TechnicalDetails from './TechnicalDetails'
 import { humanTime, money } from './product-ui'
@@ -40,7 +41,7 @@ export default function SandboxReceipt({ receipt: r }: { receipt: CaptureReceipt
     try { window.print() } catch { setPrintError('Print could not open. Use your browser’s Print command.') }
   }
   return <article id="payment-receipt" className="completed-receipt" aria-labelledby="receipt-heading">
-    <header className="receipt-header"><div><span className="receipt-brand">BeforePay</span><p>Sandbox payment receipt</p></div><div className="receipt-seal"><strong>Capture completed</strong><span>Test funds only</span></div></header>
+    <header className="receipt-header"><div><span className="receipt-brand"><Brand /></span><p>Sandbox payment receipt</p></div><div className="receipt-seal"><strong>Capture completed</strong><span>Test funds only</span></div></header>
     <div className="receipt-heading"><div><h2 id="receipt-heading">Payment recorded</h2><p className="receipt-booking">Sandbox capture record</p><p className="receipt-label-note">Historical record of the exact approved versions</p></div><button className="no-print" type="button" onClick={print}>Print receipt</button></div>
     {printError && <p className="field-error no-print" role="alert">{printError}</p>}
     <section className="receipt-amount"><span>Captured amount</span><strong>{money(r.amount, r.currency)}</strong><p>Recorded {humanTime(r.created_at)}</p></section>
