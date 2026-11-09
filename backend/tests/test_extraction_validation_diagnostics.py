@@ -187,7 +187,10 @@ def test_rejected_provider_output_publishes_no_draft(api, monkeypatch, caplog):
     assert diagnostic(caplog)["validation_stage"] == "wire_schema"
 
 
-def test_reported_60_40_100_scenario_with_consistent_synthetic_sources():
+@pytest.mark.parametrize(
+    "suffixes", [("", ""), ("Z", "Z"), ("+00:00", "+00:00"), ("", "Z")]
+)
+def test_reported_60_40_100_scenario_with_consistent_synthetic_sources(suffixes):
     # Authored test wording based on reported facts; not the actual saved sources.
     clauses = {
         "equipment": [("Camera quantity 1.", {"name": "Camera", "quantity": "1"})],
@@ -197,13 +200,13 @@ def test_reported_60_40_100_scenario_with_consistent_synthetic_sources():
         ],
         "pickup": [
             (
-                "Pickup 2026-11-20T09:00:00 UTC.",
+                "Pickup: 20 November 2026 at 09:00 UTC.",
                 {"value": "2026-11-20T09:00:00", "timezone": "UTC"},
             )
         ],
         "return_time": [
             (
-                "Return 2026-11-22T09:00:00 UTC.",
+                "Return: 22 November 2026 at 09:00 UTC.",
                 {"value": "2026-11-22T09:00:00", "timezone": "UTC"},
             )
         ],
@@ -257,13 +260,17 @@ def test_reported_60_40_100_scenario_with_consistent_synthetic_sources():
         ],
     }
     sources, terms = [], []
-    for sid in (SID, "00000000-0000-0000-0000-000000000002"):
+    for sid, suffix in zip(
+        (SID, "00000000-0000-0000-0000-000000000002"), suffixes, strict=True
+    ):
         text = "\n".join(quote for items in clauses.values() for quote, _ in items)
         sources.append(
             {"source_id": sid, "medium": "pasted_text", "text": text, "pages": []}
         )
         for category, items in clauses.items():
             for quote, fields in items:
+                if category in {"pickup", "return_time"}:
+                    fields = {**fields, "value": fields["value"] + suffix}
                 terms.append(
                     row(
                         category,
@@ -277,6 +284,20 @@ def test_reported_60_40_100_scenario_with_consistent_synthetic_sources():
         decode_extraction(json.dumps({"terms": terms})), sources
     )
     assert not content.needs_clarification
+    from datetime import UTC, datetime
+
+    from app.agreements.service import explicit_instant
+
+    for category, day in (("pickup", 20), ("return_time", 22)):
+        claims = getattr(content.extraction, category)
+        assert len(claims) == 2
+        assert {c.value.local_datetime for c in claims} == {f"2026-11-{day}T09:00:00"}
+        assert all(c.value.timezone == "UTC" for c in claims)
+        assert all(
+            explicit_instant(c.value) == datetime(2026, 11, day, 9, tzinfo=UTC)
+            for c in claims
+        )
+        assert {c.citations[0].quotation for c in claims} == {clauses[category][0][0]}
     assert {c.kind: str(c.amount) for c in content.extraction.amounts} == {
         "rental_total": "60",
         "deposit": "40",

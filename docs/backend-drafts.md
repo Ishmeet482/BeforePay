@@ -179,6 +179,11 @@ single-extraction smoke check above.
 - Time has separate `local_datetime` (full ISO local date/time or null) and
   `timezone` (literal IANA name, numeric UTC offset, UTC, or null). No current-date,
   locale or customer-timezone inference. Ambiguous abbreviations stay unknown.
+  Prompt v5 explicitly requests offset-free local time. Provider wire values with
+  a redundant `Z`/offset are accepted only when the separately explicit timezone
+  resolves that same wall time to the identical instant, without DST ambiguity.
+  Internal schemas remain strict; mismatches are rejected, never silently shifted.
+  See [datetime compatibility evidence and limits](extraction-validation-diagnostics.md#follow-up-datetime-wire-compatibility).
 - Money uses finite nonnegative `Decimal`, up to 12 integer and four fractional
   digits, serialized as strings. Floats, conversion, totals and rounding are not
   introduced. Bare currency symbols do not establish a currency code.

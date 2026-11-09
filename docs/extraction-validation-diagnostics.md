@@ -107,6 +107,63 @@ retain exact test citations and stated amounts. This is a mocked/offline
 compatibility regression, not the saved hosted sources or a reproduction of the
 unknown model response. It does not calculate refunds or certify model accuracy.
 
+## Follow-up: datetime wire compatibility
+
+The user subsequently supplied `domain_schema` / `value_error` diagnostics for
+`pickup[0].value.local_datetime`, `pickup[1].value.local_datetime`,
+`return_time[0].value.local_datetime` and `return_time[1].value.local_datetime`.
+This narrows the hosted failure to the local datetime validator. It still does
+not reveal the rejected strings: malformed dates and offset-bearing ISO values
+can both produce this category. The earlier evidence limit above records what
+was known before these additional diagnostics.
+
+Offline reproduction confirmed a contract/conversion mismatch: prior wire
+conversion passed time strings through unchanged, while `TimeValue` requires an
+offset-free local datetime plus a separate explicit timezone. The previous prompt
+said “local ISO” but did not explicitly forbid `Z`/offsets or demonstrate the split.
+For two synthetic sources, `2026-11-20T09:00:00Z` / `+00:00` with timezone `UTC`
+(and the corresponding 22 November return) reproduce all four reported paths;
+offset-free equivalents pass. This demonstrates a compatible-format failure,
+**not proof of the exact historical hosted response**.
+
+Prompt `rental-draft-gemini-flat-v5` explicitly requests offset-free local times
+and a separate literal timezone, with an example. At the wire boundary only,
+strict full-calendar ISO values with `Z` or a numeric offset can be converted when
+the separately supplied, domain-validated timezone resolves the same wall time
+to **exactly the same UTC instant**. The existing agreement resolver checks this
+before any extraction is returned. Wall-time spelling, fractional precision,
+timezone literal and citations are preserved; no zone or date is invented.
+Inconsistent offsets and DST gaps/overlaps reject with bounded diagnostic
+categories `datetime_offset_timezone_mismatch` / `datetime_timezone_ambiguous`.
+Missing/invalid/ambiguous timezone fields and malformed dates remain subject to
+the original domain validators. A redundant offset cannot choose a DST fold.
+The internal `TimeValue` schema and all manual edit/approval contracts are unchanged.
+
+Two-source regressions cover offset-free, `Z`, `+00:00` and mixed representations
+using synthetic natural-language quotations matching the reported facts. Mocked
+SDK/API checks verify persisted unapproved drafts and no publication on an offset
+mismatch. Additional checks cover fixed/IANA zones, fractional seconds, minute-only
+spelling, nonexistent dates, partial/relative/locale dates, absent/ambiguous zones,
+DST ambiguity and unchanged literal timezone citation enforcement. These checks
+do not certify AI extraction accuracy or hosted recovery. No provider call, source
+edit, hosted change, retry or configuration change was made.
+
+Focused offline command (disposable PostgreSQL only):
+
+```sh
+cd backend
+uv run --frozen --offline pytest -q -x --tb=short \
+  tests/test_extraction_datetimes.py tests/test_extraction_validation_diagnostics.py \
+  tests/test_gemini_diagnostics.py tests/test_compact_extraction.py \
+  tests/test_drafts.py tests/test_customer_review.py \
+  tests/test_cancellation_preview.py tests/test_public_admission.py
+```
+
+The first combined run passed **277 checks** with six existing dependency warnings.
+After the wall-time-spelling refinement, the datetime, diagnostics and compact
+extraction suites passed **78 checks**, also with six existing dependency warnings.
+Ruff lint/format and whitespace checks passed.
+
 ## Remaining hosted diagnosis
 
 After the normal authorised deployment of this code, if a separately authorised

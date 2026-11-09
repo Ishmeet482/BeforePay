@@ -1,6 +1,7 @@
 """Compact Gemini wire contract; original domain validators remain authoritative."""
 
 import re
+from datetime import UTC, datetime
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -66,6 +67,7 @@ def decode_extraction(raw: str) -> Extraction:
     data = {field: [] for field in Extraction.model_fields}
     seen = set()
     unknown = set()
+    offset_times = []
     for index, term in enumerate(wire.terms):
         category = term.category
         if category not in data:
@@ -118,8 +120,26 @@ def decode_extraction(raw: str) -> Extraction:
             claim.update(name=term.name, quantity=int(quantity) if quantity else None)
             used.update({"name", "quantity"})
         elif category in {"pickup", "return_time"}:
+            local = term.value
+            # Compatibility at the provider boundary only. An offset is redundant
+            # only after the separately supplied zone resolves this same wall time
+            # to exactly the same instant. Never derive a missing zone from it.
+            offset_format = re.fullmatch(
+                r"(?P<wall_time>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}"
+                r"(?::\d{2}(?:\.\d{1,6})?)?)"
+                r"(?:Z|[+-](?:(?:0\d|1[0-3]):[0-5]\d|14:00))",
+                local,
+            )
+            if term.timezone and offset_format:
+                try:
+                    aware = datetime.fromisoformat(local)
+                except ValueError:
+                    pass  # Let the unchanged domain validator reject invalid dates.
+                else:
+                    local = offset_format.group("wall_time")
+                    offset_times.append((category, len(data[category]), index, aware))
             claim["value"] = {
-                "local_datetime": term.value or None,
+                "local_datetime": local or None,
                 "timezone": term.timezone or None,
             }
             used.update({"value", "timezone"})
@@ -156,4 +176,27 @@ def decode_extraction(raw: str) -> Extraction:
                 if field not in seen or (field in unknown and data[field])
             ]
         )
-    return validate_at("domain_schema", lambda: Extraction.model_validate(data))
+    extraction = validate_at("domain_schema", lambda: Extraction.model_validate(data))
+    if offset_times:
+        # Reuse the approval/calculation resolver, including its DST gap/overlap
+        # rejection. Import locally to keep provider/domain initialization separate.
+        from app.agreements.service import explicit_instant
+
+        for category, claim_index, wire_index, aware in offset_times:
+            value = getattr(extraction, category)[claim_index].value
+            try:
+                instant = explicit_instant(value)
+            except ValueError:
+                raise WireInvariantError(
+                    [(("terms", wire_index, "value"), "datetime_timezone_ambiguous")]
+                ) from None
+            if instant != aware.astimezone(UTC):
+                raise WireInvariantError(
+                    [
+                        (
+                            ("terms", wire_index, "value"),
+                            "datetime_offset_timezone_mismatch",
+                        )
+                    ]
+                )
+    return extraction

@@ -92,6 +92,8 @@ CATEGORIES = frozenset(
         "unused_field_not_empty",
         "missing_category",
         "unknown_with_known_claims",
+        "datetime_timezone_ambiguous",
+        "datetime_offset_timezone_mismatch",
     }
 )
 
