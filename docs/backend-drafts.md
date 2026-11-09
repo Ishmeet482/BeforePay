@@ -224,6 +224,12 @@ upstream 400/`INVALID_ARGUMENT` points toward model/schema/request compatibility
 failure without a response records null status; failed output validation records
 200 because the provider returned a successful HTTP response before validation.
 
+Output validation now also supplies `validation_stage` and bounded
+`validation_errors` entries containing only allowlisted field paths and error
+categories. Internal draft conversion uses `draft_validation_failure` on the same
+logger. These differ from provider-request `parameter_paths`; see
+[9 November diagnostic investigation and privacy boundary](extraction-validation-diagnostics.md).
+
 Summary text is selected from fixed safe descriptions, not provider prose.
 Provider error codes are allowlisted canonical codes; unknown text is suppressed.
 Malformed/credential-containing model IDs are redacted. Exception messages,
@@ -248,10 +254,13 @@ The audit below records the earlier investigation. The subsequent flat-wire fix
 and successful live service/PostgreSQL verification are documented in the current
 provider section above; no further live probe is required to verify that fix.
 
-If the sanitized application log has no parameter paths, use the separate
-[three-probe manual diagnostic](gemini-probes.md). It isolates basic model access,
+For an upstream **400/INVALID_ARGUMENT** with no recognized parameter paths,
+consult the [three-probe manual diagnostic](gemini-probes.md), which requires
+separate provider-call authorisation. It isolates basic model access,
 tiny structured output and the application schema, and retains safely redacted
 provider explanations. It does not change the application or run automatically.
+Do not use those provider probes to diagnose **200/INVALID_OUTPUT** merely because
+`parameter_paths` is empty: inspect the new local validation diagnostics instead.
 
 Reviewed SDK **2.34.0**, its actual offline-serialized Developer API request, and
 the current official model-specific guidance. Confirmed incompatible setting:

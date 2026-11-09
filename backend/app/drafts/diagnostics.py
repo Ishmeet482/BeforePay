@@ -11,6 +11,7 @@ from google.genai import errors
 from pydantic import ValidationError
 
 from app.drafts.gemini_schema import extraction_json_schema
+from app.drafts.validation import validation_report
 
 # Inherit Uvicorn's existing stderr handler/level, without configuring root logging.
 logger = logging.getLogger("uvicorn.error.contextkey.gemini")
@@ -211,6 +212,7 @@ def log_gemini_failure(
                 "model": safe_model,
                 "summary": summary,
                 "parameter_paths": fields,
+                **validation_report(error),
             },
             sort_keys=True,
         ),

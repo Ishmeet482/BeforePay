@@ -8,6 +8,7 @@ from fastapi import HTTPException
 from pydantic import ValidationError
 
 from app.drafts.schemas import DraftContent, Extraction, TermStatuses
+from app.drafts.validation import log_draft_validation
 from app.evidence.models import EvidenceSource
 
 NUMBER_WORDS = (
@@ -95,7 +96,8 @@ def fingerprint(snapshot: dict) -> str:
 def validate_and_classify(extraction: Extraction, sources: list[dict]) -> DraftContent:
     try:
         extraction = Extraction.model_validate(extraction.model_dump())
-    except ValidationError:
+    except ValidationError as error:
+        log_draft_validation(error)
         raise HTTPException(
             502, {"code": "ai_invalid_output", "message": "Invalid extraction schema."}
         ) from None
@@ -175,8 +177,16 @@ def validate_and_classify(extraction: Extraction, sources: list[dict]) -> DraftC
             statuses["currency"] = "needs_clarification"
         if extraction.amounts:
             statuses["amounts"] = "needs_clarification"
-    return DraftContent(
-        extraction=extraction,
-        term_statuses=TermStatuses(**statuses),
-        needs_clarification=any(value != "extracted" for value in statuses.values()),
-    )
+    try:
+        return DraftContent(
+            extraction=extraction,
+            term_statuses=TermStatuses(**statuses),
+            needs_clarification=any(
+                value != "extracted" for value in statuses.values()
+            ),
+        )
+    except ValidationError as error:
+        log_draft_validation(error)
+        raise HTTPException(
+            502, {"code": "ai_invalid_output", "message": "Invalid draft schema."}
+        ) from None

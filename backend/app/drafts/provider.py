@@ -12,6 +12,7 @@ from app.core.config import get_settings
 from app.drafts.diagnostics import log_gemini_failure
 from app.drafts.gemini_schema import decode_extraction, extraction_json_schema
 from app.drafts.schemas import Extraction, ModelMetadata
+from app.drafts.validation import validate_at
 
 PROMPT_VERSION = "rental-draft-gemini-flat-v4"
 SYSTEM_PROMPT = """Extract an unapproved rental agreement draft from the evidence JSON.
@@ -146,15 +147,18 @@ class GeminiExtractor:
             usage = response.usage_metadata
             return ProviderResult(
                 extraction=extraction,
-                metadata=ModelMetadata(
-                    provider="gemini",
-                    requested_model=model,
-                    response_model=response.model_version or "unavailable",
-                    response_id=response.response_id or "unavailable",
-                    sdk_version=genai.__version__,
-                    prompt_version=PROMPT_VERSION,
-                    input_tokens=usage.prompt_token_count if usage else None,
-                    output_tokens=usage.candidates_token_count if usage else None,
+                metadata=validate_at(
+                    "metadata_schema",
+                    lambda: ModelMetadata(
+                        provider="gemini",
+                        requested_model=model,
+                        response_model=response.model_version or "unavailable",
+                        response_id=response.response_id or "unavailable",
+                        sdk_version=genai.__version__,
+                        prompt_version=PROMPT_VERSION,
+                        input_tokens=usage.prompt_token_count if usage else None,
+                        output_tokens=usage.candidates_token_count if usage else None,
+                    ),
                 ),
             )
         except errors.APIError as error:
