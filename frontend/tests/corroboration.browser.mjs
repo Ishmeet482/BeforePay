@@ -45,7 +45,7 @@ try {
   await send('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:width<600});await nav();await open();await tab('Agreement');
   assert(await ev(`document.querySelector('#title-equipment').closest('section').querySelectorAll('.item-table tbody tr').length===1`),name+': corroborated item shown once');
   assert(await ev(`document.querySelector('#title-equipment').closest('section').querySelectorAll('.section-editor .claim-row').length===2`),name+': original individually editable claims preserved');
-  assert(await ev(`document.querySelector('.workspace-host:not([hidden])').textContent.includes('explicitly save a review')`),name+': explicit legacy revision guidance');
+  assert(await ev(`document.querySelector('.workspace-host:not([hidden])').textContent.includes('save a reasoned review revision')`),name+': explicit legacy revision guidance');
   await ev(`document.querySelector('#title-equipment').closest('section').querySelector('.term-summary button').click()`);await until(`document.querySelector('.evidence-drawer[open]')`);
   assert(await ev(`document.querySelector('.evidence-drawer select')?.options.length===2`),name+': both supporting quotations accessible');
   await ev(`document.querySelector('.evidence-drawer').close()`);await screenshot(name+'-agreement');

@@ -14,6 +14,7 @@ from app.agreements.service import (
 )
 from app.comparisons.models import ProposalVersion
 from app.comparisons.schemas import ComparisonRead, ProposalContent
+from app.drafts.corroboration import corroborate_typed
 from app.drafts.schemas import Extraction
 
 POLICIES = {"deposit_conditions", "cancellation_conditions"}
@@ -52,7 +53,7 @@ def normalized(value):
 def canonical(category, claims):
     """Only deterministic typed values; no money arithmetic or inferred terms."""
     values = {}
-    for c in claims:
+    for c in corroborate_typed(category, claims):
         if c.ambiguous:
             return None
         if category in {"equipment", "included_items"}:
@@ -113,6 +114,8 @@ def plan_comparison(agreement_content: dict, proposal_content: dict):
         elif not left or not right:
             pass
         elif category in POLICIES:
+            left_policy = corroborate_typed(category, left)
+            right_policy = corroborate_typed(category, right)
             if (
                 policy_conflicts(left)
                 or policy_conflicts(right)
@@ -132,7 +135,7 @@ def plan_comparison(agreement_content: dict, proposal_content: dict):
                 )
             ):
                 result["reason"] = "unresolved_policy"
-            elif [c.value for c in left] == [c.value for c in right]:
+            elif [c.value for c in left_policy] == [c.value for c in right_policy]:
                 result.update(
                     status="matches",
                     reason="identical_policy_text",
@@ -143,8 +146,8 @@ def plan_comparison(agreement_content: dict, proposal_content: dict):
                 pending.append(
                     {
                         "category": category,
-                        "agreement_text": "\n\n".join(c.value for c in left),
-                        "proposal_text": "\n\n".join(c.value for c in right),
+                        "agreement_text": "\n\n".join(c.value for c in left_policy),
+                        "proposal_text": "\n\n".join(c.value for c in right_policy),
                     }
                 )
         else:

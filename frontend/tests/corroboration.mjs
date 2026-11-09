@@ -22,6 +22,15 @@ const invalid = item('s1'); invalid.quantity = 'invalid'
 assert.equal(corroboratedRows('equipment', [invalid, item('s2')]).length, 2)
 assert.equal(merchantLabels.pickup, 'Pickup option')
 assert.equal(merchantLabels.amounts, 'Charge')
+const amount = (source, kind, label, value) => row({ origin: 'source_supported', claim: { kind, label, amount: value, currency: 'USD', ambiguous: false, citations: [{ source_id: source, quotation: label + ' USD ' + value, page_number: null }] } })
+const totals = [amount('s1', 'total_payable', 'Total payable', '100.00'), amount('s2', 'total_payable', 'total', '100')]
+const groupedTotal = corroboratedRows('amounts', totals, true)
+assert.equal(groupedTotal.length, 1)
+assert.equal(groupedTotal[0].amount, '100.00')
+assert.deepEqual(groupedTotal[0].wordings, ['Total payable', 'total'])
+assert.equal(groupedTotal[0].original.claim.citations.length, 2)
+assert.equal(corroboratedRows('amounts', [amount('s1', 'deposit', 'Refundable deposit', '40'), amount('s2', 'deposit', 'Non-refundable deposit', '40')], true).length, 2)
+assert.equal(corroboratedRows('amounts', [amount('s1', 'other', 'Cleaning', '40'), amount('s2', 'other', 'Lighting', '40')], true).length, 2)
 const { boundedRead } = await module('read-queue')
 let active = 0, maximum = 0, calls = 0
 const work = async () => { active++; maximum = Math.max(maximum, active); calls++; await new Promise(r => setTimeout(r, 15)); active--; return calls }

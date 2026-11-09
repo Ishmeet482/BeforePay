@@ -36,7 +36,7 @@ export function nextStep(s: Snapshot): { step: Step; label: string; status: stri
 }
 export function snapshotClaims(s?: Snapshot): Record<string, Claim[]> | null {
   if (!s) return null
-  if (s.agreement) return Object.fromEntries(Object.entries(s.agreement.content.extraction).map(([k, v]) => [k, corroboratedRows(k as Category, v.map(row)).map(r => ({ ...claim(k as Category, r), citations: r.original?.claim.citations ?? [] }))]))
+  if (s.agreement) return Object.fromEntries(Object.entries(s.agreement.content.extraction).map(([k, v]) => [k, corroboratedRows(k as Category, v.map(row), true).map(r => ({ ...claim(k as Category, r), citations: r.original?.claim.citations ?? [] }))]))
   return s.proposal?.content ?? null
 }
 

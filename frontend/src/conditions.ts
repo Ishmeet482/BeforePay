@@ -7,6 +7,7 @@ export const titles: Record<Category, string> = {
 export type Row = {
   key: string; original?: Entry; name: string; quantity: string; value: string
   timezone: string; kind: string; amount: string; currency: string; ambiguous: boolean
+  wordings?: string[]
 }
 export function row(entry?: Entry): Row {
   const c = entry?.claim
@@ -26,13 +27,28 @@ export function claim(category: Category, r: Row): Omit<Claim, 'citations'> {
   return { ...common, value: r.value }
 }
 /** Read projection only; saved entries, edit rows and fingerprints are untouched. */
-export function corroboratedRows(category: Category, rows: Row[]): Row[] {
+export function corroboratedRows(category: Category, rows: Row[], typedAmounts = false): Row[] {
   const groups: Row[] = []
   const identities = new Map<string, string>()
   for (const current of rows) {
     const sources = new Set(current.original?.claim.citations.map(c => c.source_id))
     let identity: string
-    try { identity = JSON.stringify(claim(category, current)) } catch { groups.push(current); continue }
+    try {
+      const value = claim(category, current)
+      if (typedAmounts && category === 'amounts') {
+        if (!/^\d+(?:\.\d+)?$/.test(current.amount)) throw new Error('Invalid amount representation')
+        const [integer, fraction = ''] = current.amount.split('.')
+        // Decimal spelling only; no numeric conversion, rounding or arithmetic.
+        const decimal = fraction.replace(/0+$/, '')
+        value.amount = integer.replace(/^0+(?=\d)/, '') + (decimal ? `.${decimal}` : '')
+        if (['rental_total', 'deposit', 'total_payable'].includes(current.kind)) {
+          let label = current.name.toLowerCase().trim().replace(/\s+/g, ' ')
+          if (current.kind === 'total_payable' && ['total', 'total payable', 'inclusive total', 'total payable (inclusive)'].includes(label)) label = 'total payable'
+          value.label = label
+        }
+      }
+      identity = JSON.stringify(value)
+    } catch { groups.push(current); continue }
     const match = current.original?.origin === 'source_supported' && !current.ambiguous && sources.size
       ? groups.find(existing => existing.original?.origin === 'source_supported' &&
         identities.get(existing.key) === identity &&
@@ -41,6 +57,7 @@ export function corroboratedRows(category: Category, rows: Row[]): Row[] {
       : undefined
     if (match?.original && current.original) {
       match.original = { ...match.original, claim: { ...match.original.claim, citations: [...match.original.claim.citations, ...current.original.claim.citations] } }
+      if (typedAmounts && category === 'amounts') match.wordings = [...new Set([...(match.wordings ?? [match.name]), current.name])]
     } else {
       identities.set(current.key, identity)
       groups.push({ ...current, original: current.original ? { ...current.original, claim: { ...current.original.claim, citations: [...current.original.claim.citations] } } : undefined })
@@ -54,7 +71,7 @@ export const merchantLabels: Record<Category, string> = {
   deposit_conditions: 'Deposit clause', cancellation_conditions: 'Cancellation clause',
 }
 export function corroboratedClaims(category: Category, claims: Claim[]): Claim[] {
-  return corroboratedRows(category, claims.map(c => row({ origin: c.citations.length ? 'source_supported' : 'customer_entered', claim: c })))
+  return corroboratedRows(category, claims.map(c => row({ origin: c.citations.length ? 'source_supported' : 'customer_entered', claim: c })), true)
     .map(r => ({ ...claim(category, r), citations: r.original?.claim.citations ?? [] }))
 }
 export function rowsChanged(category: Category, current: Row[], saved: Entry[]): boolean {

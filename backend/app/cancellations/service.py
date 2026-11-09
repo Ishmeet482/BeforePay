@@ -19,6 +19,7 @@ from app.cancellations.models import CancellationRuleApproval, CancellationRuleV
 from app.cancellations.schemas import RuleRead, Rules, Target
 from app.comparisons.schemas import ProposalContent
 from app.comparisons.service import latest_proposal, require_proposal
+from app.drafts.corroboration import corroborate_typed
 from app.policy_consistency.service import blocking_findings
 
 
@@ -96,13 +97,10 @@ def target_of(record):
 
 def money_context(claims):
     blockers, by_kind = [], {}
-    if (
-        len(claims["currency"]) != 1
-        or claims["currency"][0].ambiguous
-        or claims["currency"][0].value != "USD"
-    ):
+    currencies = corroborate_typed("currency", claims["currency"])
+    if len(currencies) != 1 or currencies[0].ambiguous or currencies[0].value != "USD":
         blockers.append("explicit_unique_USD_currency_required")
-    for claim in claims["amounts"]:
+    for claim in corroborate_typed("amounts", claims["amounts"]):
         if (
             claim.ambiguous
             or claim.currency != "USD"
@@ -238,10 +236,11 @@ def rule_blockers(rules, claims):
                     blockers.append(f"{name}_no_refund_clause_conflicts_with_split")
             except ValueError:
                 blockers.append(f"{name}_refund_amount_or_precision_unsupported")
-    if len(claims["pickup"]) != 1 or claims["pickup"][0].ambiguous:
+    pickups = corroborate_typed("pickup", claims["pickup"])
+    if len(pickups) != 1 or pickups[0].ambiguous:
         blockers.append("explicit_unique_pickup_required")
     else:
-        time = claims["pickup"][0].value
+        time = pickups[0].value
         try:
             if time.local_datetime is None or time.timezone is None:
                 raise ValueError()
@@ -303,7 +302,7 @@ def preview_one(session, record, cancellation):
     if not state.approved_current:
         return None, state.blockers + ["reviewed_current_rule_approval_required"]
     _, claims, blockers = source(session, record.booking_id, state.target)
-    pickup = explicit_instant(claims["pickup"][0].value)
+    pickup = explicit_instant(corroborate_typed("pickup", claims["pickup"])[0].value)
     if cancellation >= pickup:
         return None, ["only_pre_pickup_cancellation_supported"]
     rules = state.rules
