@@ -1,12 +1,13 @@
 import CorrectionInbox from './CorrectionInbox'
 import ClarificationPanel from './ClarificationPanel'
 import CategorySummary from './CategorySummary'
+import SavedStateLoad from './SavedStateLoad'
 import { WorkspaceReadContext } from './WorkspaceFrame'
 import TechnicalDetails from './TechnicalDetails'
 import { Action, describeClaim, EvidenceButton, TaskIntro, Resolve, Status } from './product-ui'
 import { useContext, useEffect, useState } from 'react'
 import { allPages, categories, kinds, post, request, type Agreement, type Category, type Claim, type ReviewState } from './review-api'
-import { blockerText, friendlyError, claim, row, titles, type Row } from './conditions'
+import { blockerText, friendlyError, claim, corroboratedClaims, corroboratedRows, merchantLabels, row, titles, type Row } from './conditions'
 
 type Content = Record<Category, Claim[]> & { included_items_none: boolean }
 type Proposal = { id: string; version: number; fingerprint: string; content: Content; audit: { merchant_label: string; reason: string }; created_at: string }
@@ -17,7 +18,7 @@ const empty = () => Object.fromEntries(categories.map(c => [c, [] as Row[]])) as
 const amountNames = { rental_total: 'Rental fee', total_payable: 'Total payable (inclusive)', deposit: 'Deposit', tax: 'Tax', delivery: 'Delivery', other: 'Other' }
 function contentRows(content: Content): Rows { return Object.fromEntries(categories.map(c => [c, content[c].map(c => row({ origin: 'customer_entered', claim: c }))])) as Rows }
 function baselineContent(a: Agreement): Content {
-  return { ...Object.fromEntries(categories.map(c => [c, a.content.extraction[c].map((e): Claim => ({ ...e.claim, citations: [] }))])) as Record<Category, Claim[]>, included_items_none: a.content.explicit_none_categories.includes('included_items') }
+  return { ...Object.fromEntries(categories.map(c => [c, corroboratedRows(c, a.content.extraction[c].map(row)).map((r): Claim => ({ ...claim(c, r), citations: [] }))])) as Record<Category, Claim[]>, included_items_none: a.content.explicit_none_categories.includes('included_items') }
 }
 const describe = describeClaim
 
@@ -36,7 +37,8 @@ export default function ComparisonWorkspace({ bookingId, view, onViewChange: set
   const [reason, setReason] = useState('')
   const [readSerial, setReadSerial] = useState(0)
   const [dirty, setDirty] = useState(false)
-  const [busy, setBusy] = useState(false)
+  const [busy, setBusy] = useState(true)
+  const [loaded, setLoaded] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [conflict, setConflict] = useState(false)
@@ -50,7 +52,7 @@ export default function ComparisonWorkspace({ bookingId, view, onViewChange: set
     setReview(r); setBaseline(a); setProposals(p); setComparisons(c); setComparison(c[0] ?? null)
     const chosen = p.find(x => x.id === proposalId) ?? p[0] ?? null
     setSelected(chosen); setRows(chosen ? contentRows(chosen.content) : empty()); setNone(chosen?.content.included_items_none ?? false)
-    setDirty(false); setConflict(false); setReadSerial(n => n + 1); markRead()
+    setDirty(false); setConflict(false); setLoaded(true); setReadSerial(n => n + 1); markRead()
   }
   useEffect(() => {
     const controller = new AbortController(); setBusy(true)
@@ -120,6 +122,7 @@ export default function ComparisonWorkspace({ bookingId, view, onViewChange: set
     })
   }
   const currentProposal = selected?.id === proposals[0]?.id
+  if (!loaded) return <SavedStateLoad title={view === 'buyer' ? 'Booking differences' : 'Merchant proposal'} busy={busy} error={friendlyError(error)} refresh={() => void act(() => load())} />
   return <section className="workspace" aria-busy={busy}>
     <div className="toolbar"><div><h2>{view === 'buyer' ? 'Booking differences' : 'Merchant proposal'}</h2><p>Customer-confirmed terms stay separate from merchant proposals.</p></div><button disabled={busy} onClick={() => { if (!dirty || window.confirm('Discard unsaved fields and refresh?')) void act(() => load()) }}>Refresh</button></div>
     {busy && <p role="status">Loading / saving / comparing… Policy comparison may take up to a minute.</p>}
@@ -129,7 +132,7 @@ export default function ComparisonWorkspace({ bookingId, view, onViewChange: set
     <TaskIntro owner={view === 'buyer' ? 'Buyer review' : 'Merchant proposal'} title={view === 'buyer' ? 'What changed from the buyer-agreed terms?' : 'Prepare the merchant’s final booking'}>{view === 'buyer' ? 'Differences below describe saved versions. A matching total alone does not mean terms match.' : 'Edit an independent proposal beside the buyer baseline. Saving creates a merchant version; comparison is a separate explicit action.'}</TaskIntro>
     {!review?.confirmation_current && <p className="notice">Confirm a complete current agreement in Agreement review first. Merchant proposals can be saved independently; comparisons require a current confirmation.<Resolve label="Review buyer agreement" step="review" /></p>}
     {baseline && <div className="version-meta"><span className="badge">{review?.confirmation_current ? 'Buyer baseline · confirmed' : 'Buyer baseline · review required'}</span><span>Agreement version {baseline.version}</span><TechnicalDetails data={{ agreement_id: baseline.id, fingerprint: baseline.fingerprint }} /></div>}
-    <div hidden={view !== 'buyer'} className="buyer-comparison">{comparison ? <ComparisonResults refreshToken={readSerial} bookingId={bookingId} blocked={busy || !review?.confirmation_current || conflict || comparison.id !== comparisons[0]?.id} comparison={comparison} dirty={dirty} onEdit={() => setView('merchant')} /> : <section className="comparison-empty"><h2>See what changed before you agree.</h2><p>No saved comparison yet. Save a final merchant booking, then explicitly compare it with your confirmed terms.</p></section>}
+    <div hidden={view !== 'buyer'} className="buyer-comparison">{comparison ? <ComparisonResults refreshToken={readSerial} bookingId={bookingId} blocked={busy || !review?.confirmation_current || conflict || comparison.id !== comparisons[0]?.id} comparison={comparison} dirty={dirty} onEdit={() => setView('merchant')} /> : <section className="comparison-empty"><h2>See what changed before you agree.</h2><p>{error ? 'Saved comparison status unavailable. Refresh before continuing.' : 'No saved comparison yet. Save a final merchant booking, then explicitly compare it with your confirmed terms.'}</p></section>}
     <CorrectionInbox bookingId={bookingId} refreshToken={readSerial} />
     <section className="panel compare-action"><p className="eyebrow ai-label">✦ POLICY COMPARISON MAY USE GEMINI</p><h2>Compare saved versions</h2><p>Compare the saved booking with your confirmed agreement. Policy wording may be sent to Gemini only when you click Compare.</p><Action className="primary" disabled={busy || conflict || dirty || !currentProposal || !review?.confirmation_current || !selected} resolve={!busy && !conflict ? !review?.confirmation_current ? { label: 'Review buyer agreement', step: 'review' } : dirty || !selected || !currentProposal ? { label: 'Open merchant proposal', run: () => setView('merchant'), selector: '.merchant-editor > summary' } : undefined : undefined} reason={busy ? 'Wait for the current request.' : conflict ? 'Refresh stale inputs first.' : dirty ? 'Save merchant edits before comparing.' : !review?.confirmation_current ? 'Confirm the current customer agreement first.' : !selected ? 'Save a merchant booking first.' : 'Select the latest merchant version.'} onClick={() => void compare()}>Compare bookings · may use AI</Action></section>
     {!!comparisons.length && <label>Saved comparison<select value={comparison?.id ?? ''} disabled={busy} onChange={e => setComparison(comparisons.find(c => c.id === e.target.value) ?? null)}>{comparisons.map((c, index) => <option key={c.id} value={c.id}>Saved comparison {comparisons.length - index}{c.stale ? ' · stale' : ' · current at last refresh'}</option>)}</select></label>}
@@ -152,7 +155,7 @@ export default function ComparisonWorkspace({ bookingId, view, onViewChange: set
       <fieldset disabled={busy || conflict}><legend>Merchant booking fields</legend>
         {cat === 'amounts' && <p className="hint">Total payable is inclusive, never an extra charge. No totals are calculated.</p>}
         {!rows[cat].length && <p className="hint">{cat === 'included_items' && none ? 'Explicitly no included items.' : 'Missing / unknown'}</p>}
-        {rows[cat].map((r, i) => <div className="claim-row" key={r.key}><div className="claim-heading"><small>Merchant condition {i + 1}</small><button className="text-button" aria-label={`Remove merchant ${titles[cat]} row ${i + 1}`} onClick={() => change(cat, rows[cat].filter(x => x.key !== r.key))}>Remove</button></div>
+        {rows[cat].map((r, i) => <div className="claim-row" key={r.key}><div className="claim-heading"><small>{merchantLabels[cat]} {i + 1}</small><button className="text-button" aria-label={`Remove merchant ${titles[cat]} row ${i + 1}`} onClick={() => change(cat, rows[cat].filter(x => x.key !== r.key))}>Remove</button></div>
           {(cat === 'equipment' || cat === 'included_items') && <div className="fields"><Input label="Item" value={r.name} change={v => edit(cat, r.key, 'name', v)} /><Input label="Quantity" value={r.quantity} change={v => edit(cat, r.key, 'quantity', v)} /></div>}
           {(cat === 'pickup' || cat === 'return_time') && <><Input label="Local date & time (ISO)" value={r.value} change={v => edit(cat, r.key, 'value', v)} /><Input label="Explicit timezone" value={r.timezone} change={v => edit(cat, r.key, 'timezone', v)} /></>}
           {cat === 'currency' && <Input label="Currency code" value={r.value} change={v => edit(cat, r.key, 'value', v)} />}
@@ -160,7 +163,7 @@ export default function ComparisonWorkspace({ bookingId, view, onViewChange: set
           {cat.includes('conditions') && <label>Policy text<textarea value={r.value} rows={4} onChange={e => edit(cat, r.key, 'value', e.target.value)} /></label>}
           <label className="check"><input type="checkbox" checked={r.ambiguous} onChange={e => edit(cat, r.key, 'ambiguous', e.target.checked)} />Unresolved / conflicting term</label>
         </div>)}
-        <button disabled={cat === 'included_items' && none} onClick={() => change(cat, [...rows[cat], row()])}>+ Add merchant condition</button>
+        <button disabled={cat === 'included_items' && none} onClick={() => change(cat, [...rows[cat], row()])}>+ Add {merchantLabels[cat].toLowerCase()}</button>
         {cat === 'included_items' && <label className="check"><input type="checkbox" checked={none} disabled={!!rows[cat].length} onChange={e => { setNone(e.target.checked); setDirty(true) }} />Explicitly no included items</label>}
       </fieldset></div></section>)}
     <section className="panel"><h3>Save merchant booking</h3><Input label="Merchant name / provisional label" value={label} change={setLabel} /><label>Reason / proposal note<textarea value={reason} maxLength={2000} onChange={e => setReason(e.target.value)} /></label><Action className="primary" disabled={busy || conflict || !label.trim() || !reason.trim()} resolve={!busy && !conflict ? { label: !label.trim() ? 'Enter prototype editor label' : 'Add proposal reason', selector: !label.trim() ? '.merchant-editor > .panel:last-child input' : '.merchant-editor > .panel:last-child textarea' } : undefined} reason={busy ? 'Wait for the current request.' : conflict ? 'Refresh because the saved inputs changed.' : !label.trim() ? 'Enter a merchant / prototype editor label.' : 'Enter a reason for this merchant version.'} onClick={() => void save()}>Save as new merchant version</Action><p className="hint">{dirty ? 'Unsaved fields. Existing comparisons do not describe these edits.' : 'Form shows saved merchant values.'} Customer agreement and confirmation will not change.</p></section>
@@ -192,6 +195,9 @@ function ComparisonResults({ refreshToken, bookingId, blocked, comparison: c, di
   const deposit = amount('agreement_terms', 'deposit'), merchantDeposit = amount('proposal_terms', 'deposit')
   const total = amount('agreement_terms', 'total_payable'), merchantTotal = amount('proposal_terms', 'total_payable')
   function result(r: Result) {
+    // Saved comparison status/bindings remain authoritative. Only source-backed
+    // display terms are grouped; merchant-authored repetitions remain explicit.
+    r = { ...r, agreement_terms: corroboratedClaims(r.category, r.agreement_terms) }
     const before = r.agreement_terms.map(describe).join('\n'), after = r.proposal_terms.map(describe).join('\n')
     const nonrefundable = r.category === 'deposit_conditions' && r.status === 'differs' && !c.stale && /refundable|refunded|returned/i.test(before) && !/non[- ]?refundable|not refundable/i.test(before) && /non[- ]?refundable|not refundable/i.test(after)
     return <article className={`difference-section result-${r.status}`} key={r.category}><div className="section-heading"><h3>{titles[r.category]}</h3><strong className="status-word"><span aria-hidden="true">{r.status === 'matches' ? '✓ ' : '! '}</span>{r.status === 'differs' ? 'Changed' : r.status === 'matches' ? 'Matches' : 'Needs clarification'}</strong></div>

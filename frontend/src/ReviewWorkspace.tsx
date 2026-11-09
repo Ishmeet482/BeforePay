@@ -1,10 +1,11 @@
 import CategorySummary from './CategorySummary'
+import SavedStateLoad from './SavedStateLoad'
 import { WorkspaceReadContext } from './WorkspaceFrame'
 import TechnicalDetails from './TechnicalDetails'
 import { Action, EvidenceButton, humanTime, TaskIntro, Resolve, Status } from './product-ui'
 import { useContext, useEffect, useRef, useState } from 'react'
 import { allPages, ApiError, categories, kinds, post, request, type Agreement, type Category, type Draft, type ReviewState, type Source } from './review-api'
-import { blockerText, friendlyError, claim, relevant, row, rowsChanged, titles, type Row } from './conditions'
+import { blockerText, friendlyError, claim, corroboratedRows, relevant, row, rowsChanged, titles, type Row } from './conditions'
 
 type Rows = Record<Category, Row[]>
 const emptyRows = () => Object.fromEntries(categories.map(c => [c, [] as Row[]])) as Rows
@@ -25,6 +26,7 @@ export default function ReviewWorkspace({ bookingId }: { bookingId: string }) {
   const [noItems, setNoItems] = useState(false)
   const [ack, setAck] = useState(false)
   const [busy, setBusy] = useState(true)
+  const [loaded, setLoaded] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [stale, setStale] = useState(false)
@@ -47,7 +49,7 @@ export default function ReviewWorkspace({ bookingId }: { bookingId: string }) {
     if (!mounted.current || signal?.aborted || serial !== generation.current) return
     setVersions(v); setDrafts(d); setReview(state); setSources(evidence)
     show(v.find(a => a.id === (preferredId ?? state.agreement_id)) ?? v[0] ?? null)
-    setStale(false); markRead()
+    setStale(false); setLoaded(true); markRead()
   }
   useEffect(() => {
     mounted.current = true
@@ -149,12 +151,15 @@ export default function ReviewWorkspace({ bookingId }: { bookingId: string }) {
         </details>
       </section>
   }
+  if (!loaded) return <SavedStateLoad title="Agreement review" busy={busy} error={friendlyError(error)} refresh={refresh} />
+  const needsConsolidation = categories.some(c => corroboratedRows(c, rows[c]).length < rows[c].length)
   return <div className="workspace" aria-busy={busy}>
     <div className="toolbar"><div><h2>Agreement review</h2><p>Saved versions only. Your edits create a new version.</p></div>
       <button onClick={refresh} disabled={busy}>Refresh latest</button></div>
     {busy && <p role="status">Loading / saving…</p>}
     {error && <div role="alert" className="notice error">{friendlyError(error)}{friendlyError(error) !== error && <TechnicalDetails label="Error details" data={{ error }} />}{stale && <p>Server rejected this review. Unsaved edits remain visible. Refresh latest before continuing.</p>}</div>}
     {success && <p role="status" className="notice success">{success}</p>}
+    {needsConsolidation && <p className="notice attention">Identical mentions from separate sources are grouped in summaries with all evidence. This saved version still has separate claims. Acknowledge the sources and explicitly save a review with a reason to consolidate them in a new version; then confirm that version separately. Existing history stays unchanged.</p>}
     <TaskIntro owner={review?.confirmation_current && latest ? 'Buyer-confirmed agreement' : 'Unconfirmed buyer review'} title="Review evidence. Save corrections. Confirm separately.">This is your quotation baseline. Merchant proposals stay separate; confirmation applies only to this exact saved version.</TaskIntro>
     {(!agreement || oldDraft) && <label className="identity">Your name / reviewer label<input value={actor} maxLength={100} onChange={e => setActor(e.target.value)} disabled={busy} autoComplete="name" /><small>Recorded with your review. Identity is not verified in this prototype.</small></label>}
     {!!versions.length && <details className="agreement-history"><summary>Saved agreement versions · review history</summary><label>Agreement version<select value={agreement?.id ?? ''} disabled={busy} onChange={e => {
@@ -168,7 +173,7 @@ export default function ReviewWorkspace({ bookingId }: { bookingId: string }) {
       {drafts.length ? <button disabled={busy || !actor.trim()} onClick={() => {
         if (dirty && !window.confirm('Discard unsaved changes and open the newer draft?')) return
         void act(async () => { const a = await post<Agreement>(`${base}/agreements/from-draft`, { draft_id: drafts[0].id, customer_label: actor }); await load(undefined, a.id); setSuccess('Saved draft opened for review. Nothing is confirmed.') })
-      }}>Open latest saved draft · {drafts[0].version}</button> : <p>No saved draft available. Add evidence and explicitly generate one in Sources &amp; draft.<Resolve label="Open source inbox" step="sources" /></p>}</section>}
+      }}>Open latest saved draft · {drafts[0].version}</button> : <p>{error ? 'Saved draft status unavailable. Refresh before continuing.' : <>No saved draft available. Add evidence and explicitly generate one in Sources &amp; draft.</>}<Resolve label="Open source inbox" step="sources" /></p>}</section>}
     {drafts.length > 0 && (!agreement || oldDraft) && !actor.trim() && <p className="action-explanation">Enter your reviewer name to open a saved draft.</p>}
     {!!blocks.length && <div className="notice attention" aria-label="Review blockers"><strong>{blocks.length} item(s) need review</strong><p>Resolve the highlighted fields and any issues below before confirming.</p><ul>{blocks.filter(b => !categories.some(c => relevant(c, b))).map(b => <li key={b}>{blockerText(b)}</li>)}</ul></div>}
     <div className="review-grid"><div className="conditions">
@@ -182,7 +187,7 @@ export default function ReviewWorkspace({ bookingId }: { bookingId: string }) {
       {sources.map((s, index) => <section className="panel source" id={`source-${s.id}`} key={s.id}><h3>{s.filename || `${s.source_type} ${index + 1}`}</h3><small>{s.source_type} · {s.medium === 'pdf' ? 'PDF' : 'Pasted text'}</small><TechnicalDetails label="Source details" data={{ source_id: s.id, medium: s.medium }} />
         <EvidenceButton title={s.filename || `Source ${index + 1}`} sourceId={s.id} citations={[]} />
         <label className="check"><input type="checkbox" checked={checked.has(s.id)} disabled={busy || !latest || stale} onChange={e => { setChecked(old => { const n = new Set(old); if (e.target.checked) n.add(s.id); else n.delete(s.id); return n }); setAck(false) }} />I read and reviewed this source</label></section>)}
-      {!sources.length && !busy && <p>No evidence available.</p>}
+      {!sources.length && !busy && !error && <p>No evidence available.</p>}
     </aside></div>
     {agreement && <details className="review-actions" open={!(review?.confirmation_current && latest) || dirty}><summary>{review?.confirmation_current && latest ? `Agreement version ${agreement.version} confirmed · review history or make corrections` : 'Save review & confirm agreement'}</summary>{!oldDraft && <div className="review-identity"><label className="identity">Your name / reviewer label<input value={actor} maxLength={100} onChange={e => setActor(e.target.value)} disabled={busy} autoComplete="name" /><small>Recorded with your review. Identity is not verified in this prototype.</small></label></div>}<section className="panel save-panel" id="review-save"><p className="eyebrow">STEP 1 · SAVE A REVIEW RECORD</p><h2>Save your review</h2><p>Save your review with a reason, even if no terms changed. Changed sections need their own reasons. Confirmation is a separate step.</p>
       <label>Overall review reason<textarea maxLength={2000} rows={2} value={reviewReason} disabled={!editable} onChange={e => setReviewReason(e.target.value)} placeholder="Explain the corrections or why the current terms still apply to all reviewed sources." /></label>

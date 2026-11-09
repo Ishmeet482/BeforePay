@@ -1,3 +1,4 @@
+import SavedStateLoad from './SavedStateLoad'
 import { BlockerList } from './BlockerActions'
 import { WorkspaceReadContext } from './WorkspaceFrame'
 import TechnicalDetails from './TechnicalDetails'
@@ -26,6 +27,7 @@ export default function CheckoutWorkspace({ bookingId, bookingTitle = '' }: { bo
   const [actor, setActor] = useState('')
   const [ack, setAck] = useState(false)
   const [busy, setBusy] = useState(true)
+  const [loaded, setLoaded] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [sdkReady, setSdkReady] = useState(false)
@@ -46,7 +48,7 @@ export default function CheckoutWorkspace({ bookingId, bookingTitle = '' }: { bo
     if (!mounted.current || signal?.aborted) return
     setEligibility(e); setHistory(attempts); update(attempts[0] ?? null)
     if (attempts.some(a => a.status === 'completed')) await fetchReceipt()
-    setApproval(null); setAck(false); setBlocked(!e.eligible); setSdkReady(false); container.current?.replaceChildren(); markRead()
+    setApproval(null); setAck(false); setBlocked(!e.eligible); setSdkReady(false); container.current?.replaceChildren(); setLoaded(true); markRead()
   }
   useEffect(() => { mounted.current = true; const c = new AbortController(); load(c.signal).catch(e => { if (!c.signal.aborted) setError(e.message) }).finally(() => { if (!c.signal.aborted) setBusy(false) }); return () => { mounted.current = false; c.abort() } }, [])
   async function act(work: () => Promise<void>) {
@@ -115,6 +117,7 @@ export default function CheckoutWorkspace({ bookingId, bookingTitle = '' }: { bo
   const paymentsDisabled = eligibility?.payment_execution_allowed === false
   const paymentDisabledReason = 'Payments and provider reconciliation are disabled in the public demo.'
   const active = attempt && ['creating', 'create_uncertain', 'awaiting_buyer', 'capture_uncertain', 'pending'].includes(attempt.status)
+  if (!loaded) return <SavedStateLoad title="Checkout & receipt" busy={busy} error={friendlyError(error)} refresh={() => void act(() => load())} />
   return <section className="workspace checkout-workspace" aria-busy={busy}>
     <div className={receipt ? 'toolbar receipt-tools' : 'toolbar'}>{!receipt && <div><h2>Sandbox checkout</h2><p>Review the total, approve checkout, then continue to PayPal.</p></div>}<button disabled={busy} onClick={() => void act(() => load())}>Refresh</button></div>
     {busy && <p role="status">Checking / processing sandbox checkout…</p>}{error && <div className="notice error" role="alert">{friendlyError(error)}{friendlyError(error) !== error && <TechnicalDetails label="Error details" data={{ error }} />}</div>}{message && <p className="notice success" role="status">{message}</p>}

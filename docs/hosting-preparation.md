@@ -158,8 +158,19 @@ or real Buyer/Merchant roles were added.
 
 ### Sanitised setup-failure diagnostics — 2026-11-07
 
-Intermittent hosted `public_setup_required` remains undiagnosed without a captured
-failure. Both original 503 responses and all fail-closed checks remain unchanged.
+**9 November follow-up:** a user-supplied entry confirms `database_readiness` /
+`database_identity` / `PoolTimeout`, with null SQLSTATE and no invariant failures.
+An avoidable per-booking read burst and hidden dashboard refreshes were found;
+frontend reads are now bounded to two per tab. Restricted-role delayed-read tests
+reproduce the timeout and verify cleanup/bounded admission. No hosted latency,
+cold-start or leak cause is asserted. See [corroboration and saved-state load
+investigation](source-corroboration-and-read-loads.md#hosted-readiness-failure-what-is-proven)
+for evidence, remaining limits and offline checks. Pool settings and all readiness
+checks remain unchanged.
+
+At the original 7 November diagnostic change, intermittent hosted
+`public_setup_required` was undiagnosed without a captured failure.
+Both original 503 responses and all fail-closed checks remain unchanged.
 The new warning event **`public_setup_failure`**, under logger
 `uvicorn.error.beforepay.hosting`, distinguishes:
 

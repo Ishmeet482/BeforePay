@@ -1,5 +1,5 @@
-from concurrent.futures import ThreadPoolExecutor
-from threading import Event, Lock
+from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
+from threading import Event, Lock, Timer
 from uuid import uuid4
 
 import pytest
@@ -184,6 +184,96 @@ def test_parallel_saved_state_gets_do_not_wait_for_each_other(restricted_hosting
             finally:
                 release.set()
             assert first.result(timeout=3).status_code == 200
+
+
+def test_read_burst_pool_timeout_and_bounded_lifecycle(restricted_hosting, caplog):
+    """Delayed read workload, not a claim about measured hosted query latency."""
+    runtime = restricted_hosting
+    assert runtime.pool.size() == 2
+    assert runtime.pool._max_overflow == 0 and runtime.pool.timeout() == 3
+    with TestClient(
+        app,
+        base_url="https://beforepay.example",
+        headers={"Origin": "https://beforepay.example"},
+    ) as client:
+        login = client.post("/api/demo-sessions")
+        client.headers["X-BeforePay-CSRF"] = login.json()["csrf_token"]
+        booking = client.post(
+            "/api/bookings", json={"title": "Synthetic read burst"}
+        ).json()["id"]
+        base = f"/api/bookings/{booking}"
+        paths = [
+            "/review",
+            "/merchant-bookings",
+            "/comparisons",
+            "/cancellation/rules",
+            "/checkout/attempts",
+            "/checkout/eligibility",
+        ]
+        release, lock = Event(), Lock()
+        starts = 0
+        checkouts = []
+
+        def checkout(dbapi, *_):
+            checkouts.append(id(dbapi))
+
+        def delayed_readiness(_connection, _cursor, statement, *_):
+            nonlocal starts
+            if statement == "SELECT current_database()":
+                with lock:
+                    starts += 1
+                    hold = starts <= 2
+                if hold:
+                    assert release.wait(10)
+
+        event.listen(runtime, "checkout", checkout)
+        event.listen(runtime, "before_cursor_execute", delayed_readiness)
+        try:
+            with ThreadPoolExecutor(max_workers=6) as workers:
+                futures = [workers.submit(client.get, base + path) for path in paths]
+                try:
+                    done, _ = wait(futures, timeout=5, return_when=FIRST_COMPLETED)
+                    assert done
+                    assert any(f.result().status_code == 503 for f in done)
+                finally:
+                    release.set()
+                responses = [f.result(timeout=5) for f in futures]
+            assert any(r.status_code == 503 for r in responses)
+            assert '"exception_type": "PoolTimeout"' in caplog.text
+            assert '"check": "database_identity"' in caplog.text
+            assert runtime.pool.checkedout() == 0
+            # Same slow workload with the frontend's new two-read admission bound.
+            release.clear()
+            starts = 0
+            checkouts.clear()
+            timer = Timer(3.2, release.set)
+            timer.start()
+            try:
+                with ThreadPoolExecutor(max_workers=2) as workers:
+                    responses = list(
+                        workers.map(lambda path: client.get(base + path), paths)
+                    )
+            finally:
+                release.set()
+                timer.join()
+            assert all(r.status_code == 200 for r in responses)
+            assert len(checkouts) == len(
+                paths
+            )  # One connection per request, no nested checkout.
+            assert len(set(checkouts)) <= 2
+            assert starts == len(paths)  # Readiness retained on every request.
+            assert runtime.pool.checkedout() == 0
+            assert (
+                client.get(
+                    base + "/sources/00000000-0000-0000-0000-000000000000"
+                ).status_code
+                == 404
+            )
+            assert runtime.pool.checkedout() == 0  # Error cleanup, too.
+        finally:
+            release.set()
+            event.remove(runtime, "checkout", checkout)
+            event.remove(runtime, "before_cursor_execute", delayed_readiness)
 
 
 @pytest.mark.parametrize(

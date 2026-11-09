@@ -25,6 +25,38 @@ export function claim(category: Category, r: Row): Omit<Claim, 'citations'> {
   if (category === 'amounts') return { ...common, kind: r.kind as Claim['kind'], label: r.name, amount: r.amount, currency: r.currency || null }
   return { ...common, value: r.value }
 }
+/** Read projection only; saved entries, edit rows and fingerprints are untouched. */
+export function corroboratedRows(category: Category, rows: Row[]): Row[] {
+  const groups: Row[] = []
+  const identities = new Map<string, string>()
+  for (const current of rows) {
+    const sources = new Set(current.original?.claim.citations.map(c => c.source_id))
+    let identity: string
+    try { identity = JSON.stringify(claim(category, current)) } catch { groups.push(current); continue }
+    const match = current.original?.origin === 'source_supported' && !current.ambiguous && sources.size
+      ? groups.find(existing => existing.original?.origin === 'source_supported' &&
+        identities.get(existing.key) === identity &&
+        !existing.original.claim.citations.some(c => sources.has(c.source_id)) &&
+        existing.original.claim.citations.length + current.original!.claim.citations.length <= 20)
+      : undefined
+    if (match?.original && current.original) {
+      match.original = { ...match.original, claim: { ...match.original.claim, citations: [...match.original.claim.citations, ...current.original.claim.citations] } }
+    } else {
+      identities.set(current.key, identity)
+      groups.push({ ...current, original: current.original ? { ...current.original, claim: { ...current.original.claim, citations: [...current.original.claim.citations] } } : undefined })
+    }
+  }
+  return groups
+}
+export const merchantLabels: Record<Category, string> = {
+  equipment: 'Equipment item', included_items: 'Included item', pickup: 'Pickup option',
+  return_time: 'Return option', currency: 'Currency', amounts: 'Charge',
+  deposit_conditions: 'Deposit clause', cancellation_conditions: 'Cancellation clause',
+}
+export function corroboratedClaims(category: Category, claims: Claim[]): Claim[] {
+  return corroboratedRows(category, claims.map(c => row({ origin: c.citations.length ? 'source_supported' : 'customer_entered', claim: c })))
+    .map(r => ({ ...claim(category, r), citations: r.original?.claim.citations ?? [] }))
+}
 export function rowsChanged(category: Category, current: Row[], saved: Entry[]): boolean {
   if (current.length !== saved.length) return true
   try {
@@ -40,6 +72,7 @@ export function rowsChanged(category: Category, current: Row[], saved: Entry[]):
 }
 export function blockerText(code: string): string {
   const messages: Record<string, string> = {
+    public_setup_required: 'Saved data could not be loaded because a server readiness check failed. Refresh saved data explicitly; if this continues, ask the organiser to inspect the sanitised runtime log. No successful load or absence of records is implied.',
     rental_total_missing: 'Enter the rental fee separately from the inclusive total payable.',
     currency_mismatch: 'Currency and all amount currencies must agree.',
     return_must_follow_pickup: 'Return must be after pickup.',
@@ -142,6 +175,7 @@ export function blockerText(code: string): string {
 }
 
 export function friendlyError(message: string): string {
+  if (/\bpublic_setup_required\b/.test(message)) return message.replace(/\bpublic_setup_required\b/g, blockerText('public_setup_required'))
   const parts = message.split(': ')
   const isCode = (part: string) => /^[a-zA-Z][a-zA-Z_]+$/.test(part) && part.includes('_')
   return parts.some(isCode) ? parts.map(part => isCode(part) ? blockerText(part) : part).join(' ') : message

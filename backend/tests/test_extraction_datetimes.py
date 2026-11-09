@@ -234,7 +234,7 @@ def test_two_source_times_through_mocked_sdk_and_persistence(
     assert draft["model_metadata"]["prompt_version"] == PROMPT_VERSION
     for category, day in (("pickup", 20), ("return_time", 22)):
         claims = draft["content"]["extraction"][category]
-        assert len(claims) == 2
+        assert len(claims) == 1
         assert all(
             c["value"]
             == {
@@ -243,6 +243,8 @@ def test_two_source_times_through_mocked_sdk_and_persistence(
             }
             for c in claims
         )
-        assert {c["citations"][0]["source_id"] for c in claims} == set(sources)
+        assert {
+            citation["source_id"] for c in claims for citation in c["citations"]
+        } == set(sources)
         assert all(c["citations"][0]["quotation"] == quotes[category] for c in claims)
     assert api.get(base + f"/drafts/{draft['id']}").json() == draft

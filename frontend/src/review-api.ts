@@ -1,4 +1,5 @@
 import { csrfForRequest, forgetServerSession } from './server-session'
+import { boundedRead } from './read-queue'
 
 export const categories = ['equipment', 'pickup', 'return_time', 'currency', 'amounts', 'deposit_conditions', 'cancellation_conditions', 'included_items'] as const
 export type Category = typeof categories[number]
@@ -28,6 +29,11 @@ export class ApiError extends Error {
   constructor(public status: number, message: string, public serverMessage?: string) { super(message) }
 }
 export async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const signal = options.signal ?? AbortSignal.timeout(95000)
+  const work = () => performRequest<T>(path, { ...options, signal })
+  return !options.method || ['GET', 'HEAD'].includes(options.method.toUpperCase()) ? boundedRead(signal, work) : work()
+}
+async function performRequest<T>(path: string, options: RequestInit): Promise<T> {
   const headers = new Headers(options.headers)
   if (options.method && !['GET', 'HEAD', 'OPTIONS'].includes(options.method.toUpperCase())) headers.set('X-BeforePay-CSRF', await csrfForRequest())
   // Multipart boundaries belong to the browser. JSON remains the default for

@@ -1,3 +1,4 @@
+import SavedStateLoad from './SavedStateLoad'
 import { BlockerContext, BlockerList } from './BlockerActions'
 import PolicyConsistencyPanel from './PolicyConsistencyPanel'
 import { WorkspaceReadContext } from './WorkspaceFrame'
@@ -47,6 +48,7 @@ export default function CancellationWorkspace({ bookingId, merchant = false }: {
     return () => cancelAnimationFrame(frame)
   }, [result])
   const [busy, setBusy] = useState(true)
+  const [loaded, setLoaded] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   function latest(records: Rule[], s: Source | undefined) { return s ? records.filter(r => r.target.kind === s.target.kind && r.target.id === s.target.id).sort((a, b) => b.version - a.version)[0] ?? null : null }
@@ -65,7 +67,7 @@ export default function CancellationWorkspace({ bookingId, merchant = false }: {
     if (a) src.push({ target: { kind: 'agreement', id: a.id, fingerprint: a.fingerprint }, version: a.version, available: review.confirmation_current, policies: ['deposit_conditions', 'cancellation_conditions'].flatMap(category => a.content.extraction[category as 'deposit_conditions' | 'cancellation_conditions'].map(e => ({ category, claim: e.claim }))) })
     const p = proposals[0]
     if (p) src.push({ target: { kind: 'proposal', id: p.id, fingerprint: p.fingerprint }, version: p.version, available: true, policies: ['deposit_conditions', 'cancellation_conditions'].flatMap(category => p.content[category as 'deposit_conditions' | 'cancellation_conditions'].map(claim => ({ category, claim }))) })
-    setSources(src); setAllRules(records); show(records, src, selectedKind); markRead()
+    setSources(src); setAllRules(records); show(records, src, selectedKind); setLoaded(true); markRead()
   }
   useEffect(() => { const c = new AbortController(); load(c.signal).catch(e => { if (!c.signal.aborted) setError(e.message) }).finally(() => { if (!c.signal.aborted) setBusy(false) }); return () => c.abort() }, [])
   useEffect(() => { const clear = () => setResult(null); window.addEventListener('contextkey:changed', clear); return () => window.removeEventListener('contextkey:changed', clear) }, [])
@@ -116,6 +118,7 @@ export default function CancellationWorkspace({ bookingId, merchant = false }: {
       deposit_clause: deposits.length === 1 ? text(deposits[0].claim) : '', needs_clarification: true,
       clarification_note: 'Illustrative rules only. Verify split, cutoff, boundary and every clause against this exact source; resolve contradictions before confirming.' })
   }
+  if (!loaded) return <SavedStateLoad title="Cancellation" busy={busy} error={friendlyError(error)} refresh={() => void act(() => load())} />
   return <section className="workspace" aria-busy={busy}>
     <div className="toolbar"><div><h2>{merchant ? 'Merchant policy rules' : 'Cancellation calculator'}</h2><p>{merchant ? 'Prepare and review rules for the latest merchant proposal. Buyer agreement confirmation is separate.' : 'Preview a refund using reviewed rules. No cancellation or refund is performed.'}</p></div><button disabled={busy} onClick={() => { if (!dirty || window.confirm('Discard unsaved rules and refresh?')) void act(() => load()) }}>Refresh rules</button></div>
 
@@ -151,7 +154,7 @@ export default function CancellationWorkspace({ bookingId, merchant = false }: {
         <label>Review note<textarea maxLength={2000} value={note} onChange={e => setNote(e.target.value)} /></label><Action className="primary" disabled={busy || dirty || !source.available || !actor.trim() || !note.trim() || !complete || !resolved || !ack || saved.blockers.length > 0 || saved.approved_current} resolve={!busy && !saved.approved_current ? !source.available ? { label: 'Review buyer agreement', step: 'review' } : { label: dirty || saved.blockers.length ? 'Review rule fields' : !actor.trim() ? 'Enter reviewer name' : !note.trim() ? 'Add review note' : 'Review approval attestations', selector: dirty || saved.blockers.length ? '.rule-authoring' : !actor.trim() ? '.rule-authoring input' : !note.trim() ? '.rule-confirmation textarea' : '.rule-confirmation .check input' } : undefined} reason={saved.approved_current ? 'This rule version is already approved and current.' : busy ? 'Wait for the current request.' : dirty ? 'Save rule edits as a new version first.' : !source.available ? 'Renew agreement confirmation first.' : saved.blockers.length ? 'Resolve the listed rule blockers before confirmation.' : !actor.trim() ? 'Enter your reviewer name.' : !note.trim() ? 'Add a review note.' : 'Check all three review and exact-version approval attestations.'} onClick={() => void confirm()}>{merchant ? "Confirm reviewed merchant rules" : "Confirm reviewed rules"}</Action>
       </section>}
       {!!allRules.filter(r => !merchant || r.target.kind === "proposal").length && <details className="rule-history"><summary>Saved rule history · {allRules.filter(r => !merchant || r.target.kind === "proposal").length} versions</summary>{allRules.filter(r => !merchant || r.target.kind === "proposal").map(r => <article className="panel" key={r.id}><h4>{r.target.kind} source version {r.source_version} · rule version {r.version}</h4><p className="hint">{r.origin === 'gemini' ? 'AI-proposed' : 'Human-authored'} · {r.approved_current ? 'Approved and current' : 'Not approved/current'}</p><p>Cutoff {r.rules.cutoff_hours} hours; exact boundary belongs to {r.rules.early_includes_boundary ? 'earlier' : 'later'} band.</p><blockquote>{r.rules.early.clause}</blockquote><blockquote>{r.rules.late.clause}</blockquote><blockquote>{r.rules.deposit_clause}</blockquote><TechnicalDetails label="Rule fields, provenance and approval" data={{ ...r }} /></article>)}</details>}
-    </details></> : <p className="notice">No {kind} version available. Confirm an agreement or explicitly save a merchant proposal in the other tabs.<Resolve label={kind === 'agreement' ? 'Review buyer agreement' : 'Open merchant proposal'} step={kind === 'agreement' ? 'review' : 'comparison'} /></p>}
+    </details></> : <p className="notice">{error ? 'Saved source version status unavailable. Refresh before continuing.' : <>No {kind} version available. Confirm an agreement or explicitly save a merchant proposal in the other tabs.</>}<Resolve label={kind === 'agreement' ? 'Review buyer agreement' : 'Open merchant proposal'} step={kind === 'agreement' ? 'review' : 'comparison'} /></p>}
 
     <details className="help"><summary>How this preview works</summary><p>Pre-pickup only: one cutoff and separate rental-fee/deposit refunds in USD cents. The stated rental fee plus deposit must equal total payable. Unsupported or conflicting policies need clarification. This preview does not cancel a booking or move money.</p></details>
   </section>

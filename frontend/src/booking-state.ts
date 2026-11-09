@@ -1,5 +1,6 @@
 import type { Tone } from './product-ui'
-import { allPages, request, type Agreement, type Claim, type ReviewState } from './review-api'
+import { claim, corroboratedRows, row } from './conditions'
+import { allPages, request, type Agreement, type Claim, type Category, type ReviewState } from './review-api'
 export type Step = 'clarifications' | 'reference' | 'overview' | 'sources' | 'review' | 'comparison' | 'cancellation' | 'checkout'
 export type ProposalSummary = { id: string; version: number; fingerprint: string; content: Record<string, Claim[]> }
 export type ComparisonSummary = { id: string; stale: boolean; results: { category: string; status: string }[] }
@@ -35,7 +36,7 @@ export function nextStep(s: Snapshot): { step: Step; label: string; status: stri
 }
 export function snapshotClaims(s?: Snapshot): Record<string, Claim[]> | null {
   if (!s) return null
-  if (s.agreement) return Object.fromEntries(Object.entries(s.agreement.content.extraction).map(([k, v]) => [k, v.map(e => e.claim)]))
+  if (s.agreement) return Object.fromEntries(Object.entries(s.agreement.content.extraction).map(([k, v]) => [k, corroboratedRows(k as Category, v.map(row)).map(r => ({ ...claim(k as Category, r), citations: r.original?.claim.citations ?? [] }))]))
   return s.proposal?.content ?? null
 }
 

@@ -26,6 +26,7 @@ from app.agreements.service import (
     validate_sources,
 )
 from app.bookings.router import DatabaseSession, lock_booking
+from app.drafts.corroboration import corroborate_review
 from app.drafts.schemas import Extraction
 from app.drafts.service import validate_and_classify
 
@@ -50,7 +51,7 @@ def begin_review(booking_id: UUID, body: FromDraft, session: DatabaseSession):
     } != draft.source_fingerprints:
         reject("draft_evidence_changed")
     extraction = Extraction.model_validate(draft.content["extraction"])
-    validate_and_classify(extraction, selected)
+    extraction = validate_and_classify(extraction, selected).extraction
     content = ReviewContent(
         extraction={
             category: [
@@ -132,7 +133,7 @@ def revise_agreement(
             data["explicit_none_categories"] = (
                 ["included_items"] if change.explicit_none else []
             )
-    revised = ReviewContent.model_validate(data)
+    revised = corroborate_review(ReviewContent.model_validate(data))
     validate_sources(revised, snapshots)
     return save_version(
         session,

@@ -290,14 +290,16 @@ def test_reported_60_40_100_scenario_with_consistent_synthetic_sources(suffixes)
 
     for category, day in (("pickup", 20), ("return_time", 22)):
         claims = getattr(content.extraction, category)
-        assert len(claims) == 2
+        assert len(claims) == 1
         assert {c.value.local_datetime for c in claims} == {f"2026-11-{day}T09:00:00"}
         assert all(c.value.timezone == "UTC" for c in claims)
         assert all(
             explicit_instant(c.value) == datetime(2026, 11, day, 9, tzinfo=UTC)
             for c in claims
         )
-        assert {c.citations[0].quotation for c in claims} == {clauses[category][0][0]}
+        assert {citation.quotation for c in claims for citation in c.citations} == {
+            clauses[category][0][0]
+        }
     assert {c.kind: str(c.amount) for c in content.extraction.amounts} == {
         "rental_total": "60",
         "deposit": "40",
@@ -307,6 +309,8 @@ def test_reported_60_40_100_scenario_with_consistent_synthetic_sources(suffixes)
         "Battery": 2,
         "Microphone": 1,
     }
-    assert {str(c.citations[0].source_id) for c in content.extraction.equipment} == {
-        s["source_id"] for s in sources
-    }
+    assert {
+        str(citation.source_id)
+        for c in content.extraction.equipment
+        for citation in c.citations
+    } == {s["source_id"] for s in sources}

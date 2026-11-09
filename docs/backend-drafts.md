@@ -1,6 +1,10 @@
 # Cited rental draft extraction
 
 Extraction creates immutable **drafts**, never automatically approved agreements.
+New drafts consolidate only exact, non-ambiguous corroboration across separate
+sources, retaining all citations and never summing repeated mentions. Existing
+saved reviews need an explicit revision; different wording and conflicting values
+remain separate. See [corroboration rules and legacy review steps](source-corroboration-and-read-loads.md).
 The separate [customer review stage](customer-review.md) now supports explicit
 corrections and confirmation without changing AI drafts. The browser now supports
 [booking creation, evidence intake and explicit draft generation](starting-flow.md).

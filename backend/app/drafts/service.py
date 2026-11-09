@@ -7,6 +7,7 @@ from decimal import Decimal
 from fastapi import HTTPException
 from pydantic import ValidationError
 
+from app.drafts.corroboration import corroborate_extraction
 from app.drafts.schemas import DraftContent, Extraction, TermStatuses
 from app.drafts.validation import log_draft_validation
 from app.evidence.models import EvidenceSource
@@ -179,7 +180,7 @@ def validate_and_classify(extraction: Extraction, sources: list[dict]) -> DraftC
             statuses["amounts"] = "needs_clarification"
     try:
         return DraftContent(
-            extraction=extraction,
+            extraction=corroborate_extraction(extraction),
             term_statuses=TermStatuses(**statuses),
             needs_clarification=any(
                 value != "extracted" for value in statuses.values()

@@ -29,18 +29,19 @@ const steps: { id: Step; label: string; detail: string }[] = [
   { id: 'cancellation', label: 'Cancellation', detail: 'Review rules and preview refund' },
   { id: 'checkout', label: 'Checkout & receipt', detail: 'Sandbox payment' },
 ]
-function useSnapshot(id: string, epoch: number) {
+function useSnapshot(id: string, epoch: number, active = true) {
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null)
   const [error, setError] = useState('')
   useEffect(() => {
+    if (!active) return
     const c = new AbortController(); setError('')
     loadSnapshot(id, c.signal).then(s => { if (!c.signal.aborted) setSnapshot(s) }).catch(e => { if (!c.signal.aborted) setError(intakeError(e)) })
     return () => c.abort()
-  }, [id, epoch])
+  }, [id, epoch, active])
   return { snapshot, error }
 }
-function BookingRow({ booking, onOpen, epoch, workspace }: { booking: Booking; onOpen: (step: Step) => void; epoch: number; workspace: Workspace }) {
-  const { snapshot, error } = useSnapshot(booking.id, epoch)
+function BookingRow({ booking, onOpen, epoch, workspace, active }: { booking: Booking; onOpen: (step: Step) => void; epoch: number; workspace: Workspace; active: boolean }) {
+  const { snapshot, error } = useSnapshot(booking.id, epoch, active)
   const claims = snapshotClaims(snapshot ?? undefined)
   const total = claims?.amounts?.filter(c => c.kind === 'total_payable')
   const next = snapshot && !error ? workspaceNext(snapshot, workspace) : null
@@ -197,7 +198,7 @@ export default function App() {
       {createOpen && identity === "buyer" && workspace === "buyer" && <section className="create-sheet"><h2>A new rental booking</h2><p>Name the rental, then add your quotation and messages. No equipment or terms are added automatically.</p><form onSubmit={e => void createBooking(e)}><label>Rental category · setup guide<select value={rentalCategory} disabled={creating} aria-describedby="rental-category-help" onChange={e => setRentalCategory(e.target.value as RentalCategory | '')}><option value="">Choose a rental category</option>{Object.entries(rentalCategories).map(([key, category]) => <option key={key} value={key}>{category.label}</option>)}</select><small id="rental-category-help">Guides naming only; category is not stored as an agreement term. Saved sources establish the actual items.</small></label><label>Booking title<input autoFocus value={title} maxLength={200} required disabled={creating} placeholder={rentalCategory ? rentalCategories[rentalCategory].example : 'e.g. Equipment rental · event or project'} aria-describedby="booking-title-help" onChange={e => setTitle(e.target.value)} /><small id="booking-title-help">Use your own equipment names. This title does not create equipment, prices or policies.</small></label><Action className="primary" disabled={creating || loading || creationNeedsRefresh || !title.trim()} reason={creating ? 'Creating your booking…' : loading ? 'Wait for the saved booking list to finish loading.' : creationNeedsRefresh ? 'Refresh the saved list and check for your booking before retrying.' : 'Enter a booking name to continue.'}>Create booking</Action></form></section>}
       {error && <p className="notice error" role="alert">{error}</p>}
       <div className="list-toolbar"><span>{loading ? 'Loading bookings…' : `${bookings.length} saved booking${bookings.length === 1 ? '' : 's'}`}</span><button disabled={loading || creating} onClick={() => void refreshBookings()}>Refresh list</button></div>
-      {!!bookings.length && <div className="booking-table" tabIndex={-1}><table className="data-table bookings-table"><caption className="sr-only">Saved bookings, rental dates, inclusive totals, statuses and next actions</caption><colgroup><col className="booking-col-name" /><col className="booking-col-dates" /><col className="booking-col-total" /><col className="booking-col-status" /><col className="booking-col-action" /></colgroup><thead><tr><th scope="col">Booking / equipment</th><th scope="col">{workspace === "buyer" ? "Pickup & return" : "Buyer agreement"}</th><th scope="col" className={workspace === "buyer" ? "numeric" : undefined}>{workspace === "buyer" ? "Inclusive total" : "Merchant proposal / rules"}</th><th scope="col">Current status</th><th scope="col" className="table-actions">Next action</th></tr></thead><tbody>{bookings.map(b => <BookingRow key={b.id} booking={b} epoch={epoch} workspace={workspace} onOpen={step => openBooking(b.id, step)} />)}</tbody></table></div>}
+      {!!bookings.length && <div className="booking-table" tabIndex={-1}><table className="data-table bookings-table"><caption className="sr-only">Saved bookings, rental dates, inclusive totals, statuses and next actions</caption><colgroup><col className="booking-col-name" /><col className="booking-col-dates" /><col className="booking-col-total" /><col className="booking-col-status" /><col className="booking-col-action" /></colgroup><thead><tr><th scope="col">Booking / equipment</th><th scope="col">{workspace === "buyer" ? "Pickup & return" : "Buyer agreement"}</th><th scope="col" className={workspace === "buyer" ? "numeric" : undefined}>{workspace === "buyer" ? "Inclusive total" : "Merchant proposal / rules"}</th><th scope="col">Current status</th><th scope="col" className="table-actions">Next action</th></tr></thead><tbody>{bookings.map(b => <BookingRow active={inBookings && !inBooking} key={b.id} booking={b} epoch={epoch} workspace={workspace} onOpen={step => openBooking(b.id, step)} />)}</tbody></table></div>}
       {!loading && !error && !bookings.length && <section className="empty-state" tabIndex={-1}><span className="empty-document" aria-hidden="true">01</span><h2>Your next rental starts here.</h2><p>Create a booking, add the agreed quotation, then check the final terms side by side. Nothing is generated or approved automatically.</p><button onClick={startBuyerBooking}>Create your first booking</button></section>}
     </main></div>
     {login && <DemoLogin key={login.buyerOnly ? "booking-entry" : "role-entry"} requiredRole={login.buyerOnly ? "buyer" : undefined} currentRole={identity} initialRole={login.role} onEnter={enterDemo} onDismiss={() => setLogin(null)} />}
@@ -220,7 +221,7 @@ function BookingJourney({ booking, epoch, entry, active, onBack, workspace, onSw
   const [findingsSerial, setFindingsSerial] = useState(0)
   const [ruleRequest, setRuleRequest] = useState<{ serial: number; kind: 'agreement' | 'proposal'; workspace: Workspace }>()
   const [revision, setRevision] = useState(0)
-  const { snapshot, error } = useSnapshot(booking.id, epoch + revision)
+  const { snapshot, error } = useSnapshot(booking.id, epoch + revision, active)
   useEffect(() => { const update = () => setRevision(n => n + 1); window.addEventListener('contextkey:changed', update); return () => window.removeEventListener('contextkey:changed', update) }, [])
   function focus(selector?: string) { requestAnimationFrame(() => { const main = document.querySelector<HTMLElement>('#main-content'); main?.scrollIntoView({ block: 'start' }); if (window.matchMedia('(max-width: 1023px)').matches) document.querySelector<HTMLButtonElement>('.tabs button[aria-current=step]')?.scrollIntoView({ block: 'nearest', inline: 'center' }); const target = selector ? main?.querySelector<HTMLElement>(`.workspace-host:not([hidden]) ${selector}`) : main?.querySelector<HTMLElement>('h1, .completed-receipt h2'); if (target) { for (let p: HTMLElement | null = target; p; p = p.parentElement) if (p instanceof HTMLDetailsElement) p.open = true; target.tabIndex = -1; if (selector) target.scrollIntoView({ block: 'start' }); target.focus({ preventScroll: true }) } }) }
   function openIn(view: Workspace, step: Step, selector?: string) {

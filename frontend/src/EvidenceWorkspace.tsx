@@ -1,4 +1,5 @@
 import CategorySummary from './CategorySummary'
+import SavedStateLoad from './SavedStateLoad'
 import { WorkspaceReadContext } from './WorkspaceFrame'
 import { useContext, useEffect, useRef, useState } from 'react'
 import { allPages, ApiError, request, type Agreement, type Draft, type ReviewState, type Source } from './review-api'
@@ -61,6 +62,7 @@ export default function EvidenceWorkspace({ bookingId, onReview }: { bookingId: 
   const [file, setFile] = useState<File | null>(null)
   const [actor, setActor] = useState('')
   const [busy, setBusy] = useState('Loading saved sources and drafts…')
+  const [loaded, setLoaded] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const mounted = useRef(true)
@@ -77,7 +79,7 @@ export default function EvidenceWorkspace({ bookingId, onReview }: { bookingId: 
     const agreement = review.agreement_id ? await request<Agreement>(`${base}/agreements/${review.agreement_id}`, { signal }) : null
     if (!mounted.current || signal?.aborted) return
     setSources(saved); setDraft(drafts[0] ?? null); setReviewedDraft(agreement?.draft_id ?? null); setHasAgreement(!!agreement)
-    setSelected(old => new Set([...old].filter(id => saved.some(s => s.id === id)))); markRead()
+    setSelected(old => new Set([...old].filter(id => saved.some(s => s.id === id)))); setLoaded(true); markRead()
   }
   useEffect(() => {
     mounted.current = true; const c = new AbortController(); controller.current = c
@@ -155,6 +157,7 @@ export default function EvidenceWorkspace({ bookingId, onReview }: { bookingId: 
       if (mounted.current) onReview()
     })
   }
+  if (!loaded) return <SavedStateLoad title="Sources & draft" busy={!!busy} error={error} refresh={() => void act('Loading saved data…', signal => load(signal))} />
   return <section className="workspace" aria-busy={!!busy}>
     <div className="toolbar"><div><h2>Sources & draft</h2><p>Keep the original evidence beside your unconfirmed draft.</p></div><button disabled={!!busy} onClick={() => void act('Refreshing saved sources and drafts…', load)}>Refresh saved</button></div>
     {busy && <p role="status">{busy}</p>}{error && <p className="notice error" role="alert">{error}</p>}{message && <p className="notice success" role="status">{message}</p>}
@@ -167,12 +170,12 @@ export default function EvidenceWorkspace({ bookingId, onReview }: { bookingId: 
         <Action className="primary" type="submit" disabled={!!busy || (mode === 'text' ? !text.trim() || textLength > MAX_TEXT || text.includes('\0') : !file)} reason={busy ? 'Wait for the current upload or request.' : mode === 'pdf' ? 'Choose a text-based PDF first.' : textLength > MAX_TEXT ? 'Reduce the text to 100,000 characters.' : text.includes('\0') ? 'Remove unsupported NUL characters.' : 'Paste the original quotation or message first.'}>Save source</Action>
       </fieldset></form></section>
     </details><details className="sample-tools source-examples"><summary>Optional synthetic camera example</summary><p>Authored demo sources, not your booking terms. Load into the form only; saving and AI generation stay separate.</p><div className="sample-buttons"><button type="button" disabled={!!busy} onClick={() => void loadCameraExample('quotation')}>Load synthetic quotation · form only</button><button type="button" disabled={!!busy} onClick={() => void loadCameraExample('message')}>Load synthetic message · form only</button></div></details><section className="panel source-selection"><h3>Select sources for your draft</h3><p>Checked sources are sent together only when you click Generate AI draft. Choose what Gemini may read. Source acknowledgement happens separately in agreement review.</p>
-      {!sources.length && !busy && <p>No saved sources yet. Paste text or upload a PDF above.</p>}
+      {!sources.length && !busy && !error && <p>No saved sources yet. Paste text or upload a PDF above.</p>}
       {sources.map((s, index) => <SavedSource key={s.id} bookingId={bookingId} source={s} index={index} checked={selected.has(s.id)} disabled={!!busy} onToggle={checked => { setSelected(old => { const next = new Set(old); if (checked) next.add(s.id); else next.delete(s.id); return next }); setMessage('') }} />)}
       <p className={selected.size > MAX_SOURCES ? 'field-error' : 'hint'}>{selected.size} / 20 sources selected. Combined extraction input limit: 200,000 characters.</p>
     </section>
     </section><section className="draft-workspace"><section className="panel ai-panel"><p className="eyebrow ai-label">✦ GEMINI ASSISTANCE · EXPLICIT REQUEST</p><h3><span className="sequence">2</span> Generate a draft</h3><p>Only this action sends selected sources to Gemini. Uses your configured quota; never generates on upload or page load.</p><Action className="primary ai-button" disabled={!!busy || selected.size === 0 || selected.size > MAX_SOURCES} resolve={!busy ? { label: 'Choose saved sources', selector: '.source-selection' } : undefined} reason={busy ? 'Wait for the current request.' : selected.size > MAX_SOURCES ? 'Select at most 20 sources.' : 'Select at least one saved source.'} onClick={() => void generate()}>Generate AI draft</Action><p className="hint">AI drafts remain unconfirmed. Unknowns and conflicting terms must be reviewed; no terms are automatically approved.</p></section>
-    <section className="panel"><h3><span className="sequence">3</span> Review extracted terms</h3>{draft ? <><p>Latest saved draft: version {draft.version} · {humanTime(draft.created_at)}{draft.content.needs_clarification ? ' · needs review' : ''}</p><p className="hint">Uses {draft.input_source_ids.length} saved source(s).{sources.some(s => !draft.input_source_ids.includes(s.id)) ? ' Some current sources were not included; review will require acknowledging all current evidence.' : ''}</p>{draft.content.extraction && <details className="draft-summary" open={!hasAgreement}><summary>Read extracted terms · unconfirmed</summary>{Object.entries(draft.content.extraction).map(([category, claims]) => <section className="panel" key={category}><h4>{titles[category as Category]}</h4><CategorySummary category={category as Category} rows={(claims || []).map((c, index) => ({ ...row({ origin: 'source_supported', claim: c }), key: `${draft.id}-${category}-${index}` }))} noItems={false} /></section>)}</details>}<TechnicalDetails data={{ draft_id: draft.id, input_source_ids: draft.input_source_ids }} />{reviewedDraft !== draft.id && <label>Your name / reviewer label<input value={actor} maxLength={100} onChange={e => setActor(e.target.value)} disabled={!!busy} /></label>}<Action className="primary" disabled={!!busy || (reviewedDraft !== draft.id && !actor.trim())} reason={busy ? 'Wait for the current request.' : 'Enter your reviewer name to open this saved draft.'} onClick={() => void openReview()}>Open Agreement review</Action><p className="hint">Open an unconfirmed review or return to the existing version. Saving and confirmation remain separate.</p></> : <p>No saved draft yet. Select evidence and explicitly generate one above.</p>}</section>
+    <section className="panel"><h3><span className="sequence">3</span> Review extracted terms</h3>{draft ? <><p>Latest saved draft: version {draft.version} · {humanTime(draft.created_at)}{draft.content.needs_clarification ? ' · needs review' : ''}</p><p className="hint">Uses {draft.input_source_ids.length} saved source(s).{sources.some(s => !draft.input_source_ids.includes(s.id)) ? ' Some current sources were not included; review will require acknowledging all current evidence.' : ''}</p>{draft.content.extraction && <details className="draft-summary" open={!hasAgreement}><summary>Read extracted terms · unconfirmed</summary>{Object.entries(draft.content.extraction).map(([category, claims]) => <section className="panel" key={category}><h4>{titles[category as Category]}</h4><CategorySummary category={category as Category} rows={(claims || []).map((c, index) => ({ ...row({ origin: 'source_supported', claim: c }), key: `${draft.id}-${category}-${index}` }))} noItems={false} /></section>)}</details>}<TechnicalDetails data={{ draft_id: draft.id, input_source_ids: draft.input_source_ids }} />{reviewedDraft !== draft.id && <label>Your name / reviewer label<input value={actor} maxLength={100} onChange={e => setActor(e.target.value)} disabled={!!busy} /></label>}<Action className="primary" disabled={!!busy || (reviewedDraft !== draft.id && !actor.trim())} reason={busy ? 'Wait for the current request.' : 'Enter your reviewer name to open this saved draft.'} onClick={() => void openReview()}>Open Agreement review</Action><p className="hint">Open an unconfirmed review or return to the existing version. Saving and confirmation remain separate.</p></> : <p>{error ? 'Saved draft status unavailable. Refresh saved data before generating anything.' : 'No saved draft yet. Select evidence and explicitly generate one above.'}</p>}</section>
     </section></div>
   </section>
 }
