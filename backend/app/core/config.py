@@ -31,14 +31,14 @@ class Settings(BaseSettings):
     public_webhooks_enabled: bool = False
     public_sandbox_payments_enabled: bool = False
     demo_payment_attempts_global: int = Field(default=20, ge=0, le=100)
-    demo_payment_attempts_per_session: int = Field(default=1, ge=0, le=3)
+    demo_payment_attempts_per_session: int = Field(default=5, ge=0, le=5)
     db_pool_size: int = Field(default=2, ge=2, le=4)
     db_max_overflow: int = Field(default=0, ge=0, le=2)
     db_pool_timeout: int = Field(default=3, ge=1, le=5)
     demo_max_sessions: int = Field(default=100, ge=0)
     demo_sessions_per_hour: int = Field(default=20, ge=0)
     demo_max_bookings: int = Field(default=100, ge=0)
-    demo_bookings_per_session: int = Field(default=2, ge=0)
+    demo_bookings_per_session: int = Field(default=5, ge=0)
     demo_max_sources: int = Field(default=400, ge=0)
     demo_sources_per_session: int = Field(default=8, ge=0)
     demo_max_writes: int = Field(default=4000, ge=0)

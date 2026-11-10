@@ -118,10 +118,15 @@ variables in the host's secret/configuration store after authorisation:
 | `GEMINI_API_KEY` | Default absent/empty. May be installed privately for separately authorised budgeted AI; no key was installed by the prerequisite change. No fallback/model change. |
 | `PUBLIC_SANDBOX_PAYMENTS_ENABLED`, `PAYPAL_SANDBOX_ENABLED` | Default `false`; both explicitly `true` plus complete sandbox credentials and runtime grants are required for hosted sandbox checkout. See [enablement guide](hosted-sandbox-payments.md). |
 | `PAYPAL_ENVIRONMENT` | Only `sandbox`. Live mode is rejected; client ID/secret/merchant ID stay backend-configured, with only client ID exposed to SDK. |
-| `DEMO_PAYMENT_ATTEMPTS_GLOBAL`, `DEMO_PAYMENT_ATTEMPTS_PER_SESSION` | Default `20` / `1`; durable all-time new-attempt caps. |
+| `DEMO_PAYMENT_ATTEMPTS_GLOBAL`, `DEMO_PAYMENT_ATTEMPTS_PER_SESSION` | Default `20` / `5`; durable all-time new-attempt caps. |
 | `PUBLIC_WEBHOOKS_ENABLED` | `false`. Hosted preparation refuses enabling it in this phase. |
 | `DB_POOL_SIZE`, `DB_MAX_OVERFLOW`, `DB_POOL_TIMEOUT` | Defaults 2, 0, 3 seconds; small validated bounds. |
 | Other `DEMO_*` resource limits | Retain [Phase 2 defaults](public-demo-controls.md); grossly raised session/source/write/storage/concurrency ceilings are rejected. Zero can close admission. |
+
+Session booking default is **5** (`DEMO_BOOKINGS_PER_SESSION`); public maximum 5.
+Existing Production overrides must be updated to **5 for both session settings**
+and the updated backend redeployed. Existing reservations continue counting;
+global/write/AI controls are unchanged. See [allowance rollout and constraints](public-demo-controls.md#session-allowances-and-deployment-overrides).
 
 Frontend needs no database, AI or payment variables. Select **Node 22.x** in project
 settings; build tested with Node 22.23.1. Keep real preview and production origins,

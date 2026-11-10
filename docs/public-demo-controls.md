@@ -79,7 +79,8 @@ except PDF per-file/page/text bounds, which must remain positive.
 | `DEMO_AI_CONCURRENT_GLOBAL` / `DEMO_AI_CONCURRENT_SESSION` | 1 / 1 | Outstanding provider reservations across all processes. |
 | `DEMO_AI_COOLDOWN_SECONDS` | 15 | Shared interval since last admitted AI request. |
 | `DEMO_MAX_SESSIONS` / `DEMO_SESSIONS_PER_HOUR` | 100 / 20 | All-time issuance attempts / rolling shared hour. Active-cookie reuse does not consume issuance. |
-| `DEMO_MAX_BOOKINGS` / `DEMO_BOOKINGS_PER_SESSION` | 100 / 2 | All-time creation attempts. |
+| `DEMO_MAX_BOOKINGS` / `DEMO_BOOKINGS_PER_SESSION` | 100 / 5 | All-time creation attempts. |
+| `DEMO_PAYMENT_ATTEMPTS_GLOBAL` / `DEMO_PAYMENT_ATTEMPTS_PER_SESSION` | 20 / 5 | All-time sandbox payment-attempt reservations; also consume writes. |
 | `DEMO_MAX_SOURCES` / `DEMO_SOURCES_PER_SESSION` | 400 / 8 | All-time intake attempts, including failed parsing after admission. |
 | `DEMO_MAX_WRITES` / `DEMO_WRITES_PER_SESSION` | 4,000 / 100 | Booking mutations, including versions, reviews, approvals and denied AI attempts. Prevents unlimited version/history growth. |
 | `DEMO_SOURCE_BYTES` / `DEMO_SOURCE_BYTES_PER_SESSION` | 8,000,000 / 400,000 | Retained evidence byte reservations. Text charges actual UTF-8 size; PDF reserves max characters × 8 for UTF-8 joined text plus page text. |
@@ -102,6 +103,59 @@ The raw booking-request body is bounded at PDF max bytes + 64 KiB **before** JSO
 multipart parsing. Resource admission occurs before PDF extraction, after normal
 ownership checks. Local mode retains its original 5 MiB PDF limits. Signed webhook
 requests retain their original body-size/signature-processing path.
+
+## Session allowances and deployment overrides
+
+Bookings and sandbox payment-attempt reservations now default to **5 each per
+session**, shared by Buyer and Merchant views and across all bookings. Public
+booking validation accepts 0–5; payment reservation validation accepts 0–5 in
+all modes. Zero disables new admissions. Existing environment variables override
+these defaults, including lower values copied from older examples.
+
+For Production, explicitly set backend Vercel `DEMO_BOOKINGS_PER_SESSION=5` and
+`DEMO_PAYMENT_ATTEMPTS_PER_SESSION=5`, then redeploy the backend containing this
+change. Earlier code rejects payment values above 3, so do not apply payment 5
+while continuing to serve an older revision. No frontend variable, migration,
+ledger reset or booking reassignment is needed. Restart a local backend to reload
+settings; existing local `.env` overrides remain in effect until privately updated.
+
+These are lifetime reservation ceilings, not five additional slots. Previously
+consumed reservations still count: usage 2 permits three more booking admissions;
+usage 3 permits two more payment-attempt reservations. Global defaults remain
+100 bookings / 20 payment reservations, with payment validation maximum 100.
+Writes remain 4000 global / 100 per session; payment reservations consume writes
+and payment routes may consume additional write admissions. Source allowance
+remains 8 per session, so five two-source bookings exceed it. AI call, token,
+rate/cooldown, concurrency, storage and session limits are unchanged. They may
+block a full walkthrough before either new session allowance is reached. Global
+payment capacity supports at most four sessions using all five reservations
+from an empty ledger, fewer after existing usage. No guarantee of five captures
+or five complete AI walkthroughs is implied. Public payment opt-in, exact-version
+approval, ownership and verified sandbox capture remain separately required.
+Local non-public mode keeps its existing admission bypass; this change does not
+introduce new local restrictions or enable hosted payments.
+
+The 10 November allowance change was checked offline: **81 quota/settings,
+public-admission, hosted-sandbox and hosting tests passed** (six
+existing dependency warnings). Tests cover explicit lower/zero overrides,
+negative/above-five rejection, preservation of already consumed reservations and
+atomic admission of the last session slot. Existing mocked sandbox checks cover
+attempt reuse, failed-create accounting, global exhaustion and capture safeguards.
+Frontend build/typecheck, Ruff lint/format and whitespace checks also passed.
+Providers were mocked; no hosted records or environment settings changed.
+
+```sh
+cd backend
+uv run --frozen --offline pytest -q -x --tb=short \
+  tests/test_session_allowances.py tests/test_public_admission.py \
+  tests/test_hosted_sandbox_payments.py \
+  tests/test_hosting_preparation.py
+uv run --frozen --offline ruff check .
+uv run --frozen --offline ruff format --check .
+cd ../frontend
+# QA config avoids loading private environment files.
+npm run build -- --config vite.qa.config.ts
+```
 
 ## Quota, crash and error behaviour
 
