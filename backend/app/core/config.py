@@ -30,28 +30,28 @@ class Settings(BaseSettings):
     public_demo_database: str = ""
     public_webhooks_enabled: bool = False
     public_sandbox_payments_enabled: bool = False
-    demo_payment_attempts_global: int = Field(default=20, ge=0, le=100)
-    demo_payment_attempts_per_session: int = Field(default=5, ge=0, le=5)
+    demo_payment_attempts_global: int = Field(default=200, ge=0, le=200)
+    demo_payment_attempts_per_session: int = Field(default=50, ge=0, le=50)
     db_pool_size: int = Field(default=2, ge=2, le=4)
     db_max_overflow: int = Field(default=0, ge=0, le=2)
     db_pool_timeout: int = Field(default=3, ge=1, le=5)
-    demo_max_sessions: int = Field(default=100, ge=0)
+    demo_max_sessions: int = Field(default=1000, ge=0)
     demo_sessions_per_hour: int = Field(default=20, ge=0)
-    demo_max_bookings: int = Field(default=100, ge=0)
-    demo_bookings_per_session: int = Field(default=5, ge=0)
-    demo_max_sources: int = Field(default=400, ge=0)
-    demo_sources_per_session: int = Field(default=8, ge=0)
-    demo_max_writes: int = Field(default=4000, ge=0)
-    demo_writes_per_session: int = Field(default=100, ge=0)
-    demo_source_bytes: int = Field(default=8_000_000, ge=0)
-    demo_source_bytes_per_session: int = Field(default=400_000, ge=0)
-    demo_upload_bytes: int = Field(default=64 * 1024 * 1024, ge=0)
-    demo_upload_bytes_per_session: int = Field(default=6 * 1024 * 1024, ge=0)
+    demo_max_bookings: int = Field(default=1000, ge=0)
+    demo_bookings_per_session: int = Field(default=50, ge=0)
+    demo_max_sources: int = Field(default=4000, ge=0)
+    demo_sources_per_session: int = Field(default=80, ge=0)
+    demo_max_writes: int = Field(default=40_000, ge=0)
+    demo_writes_per_session: int = Field(default=1000, ge=0)
+    demo_source_bytes: int = Field(default=80_000_000, ge=0)
+    demo_source_bytes_per_session: int = Field(default=4_000_000, ge=0)
+    demo_upload_bytes: int = Field(default=640 * 1024 * 1024, ge=0)
+    demo_upload_bytes_per_session: int = Field(default=60 * 1024 * 1024, ge=0)
     demo_pdf_max_bytes: int = Field(default=3 * 1024 * 1024, ge=1, le=3 * 1024 * 1024)
     demo_pdf_max_pages: int = Field(default=20, ge=1, le=100)
     demo_source_max_chars: int = Field(default=40_000, ge=1, le=100_000)
-    demo_ai_calls_per_session: int = Field(default=6, ge=0)
-    demo_ai_tokens_per_session: int = Field(default=400_000, ge=0)
+    demo_ai_calls_per_session: int = Field(default=60, ge=0)
+    demo_ai_tokens_per_session: int = Field(default=4_000_000, ge=0)
     demo_ai_calls_per_day: int = Field(default=0, ge=0)
     demo_ai_calls_per_minute: int = Field(default=2, ge=0)
     demo_ai_tokens_per_day: int = Field(default=0, ge=0)
@@ -136,12 +136,12 @@ class Settings(BaseSettings):
             "demo_sessions_per_hour": 100,
             "demo_max_bookings": 1000,
             "demo_max_sources": 4000,
-            "demo_max_writes": 10_000,
-            "demo_writes_per_session": 200,
-            "demo_sources_per_session": 20,
-            "demo_bookings_per_session": 5,
-            "demo_upload_bytes": 128 * 1024 * 1024,
-            "demo_source_bytes": 64 * 1024 * 1024,
+            "demo_max_writes": 40_000,
+            "demo_writes_per_session": 1000,
+            "demo_sources_per_session": 80,
+            "demo_bookings_per_session": 50,
+            "demo_upload_bytes": 640 * 1024 * 1024,
+            "demo_source_bytes": 80_000_000,
             "demo_ai_concurrent_global": 4,
             "demo_ai_concurrent_session": 1,
         }

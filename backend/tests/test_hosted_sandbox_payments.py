@@ -182,7 +182,7 @@ def test_vercel_opt_in_requires_complete_sandbox_configuration():
         {"paypal_sandbox_enabled": False},
         {"public_webhooks_enabled": True},
         {"public_sandbox_payments_enabled": False},
-        {"demo_payment_attempts_global": 101},
+        {"demo_payment_attempts_global": 201},
     ):
         with pytest.raises(ValidationError):
             Settings(**(values | change))

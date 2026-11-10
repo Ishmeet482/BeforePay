@@ -51,13 +51,14 @@ The opt-in alone grants no checkout eligibility.
 
 Each **new local attempt** reserves one durable `demo_admissions` row with kind
 `write` and action `sandbox_payment_attempt`, using the existing global advisory
-lock and independently committed ledger. Defaults: **20 attempts globally,
-5 per session**, all-time rather than daily; configurable maximums are 100 and 5.
+lock and independently committed ledger. Defaults: **200 attempts globally,
+50 per session**, all-time rather than daily; configurable maximums are 200 and 50.
 Existing Production overrides retain their configured values; explicitly update
-`DEMO_PAYMENT_ATTEMPTS_PER_SESSION=5` and redeploy the updated backend to use five.
-Older backend revisions reject values above three. Existing consumed reservations
-continue to count; no reset or migration is needed. Global/write/AI limits are
-unchanged; see [session allowances and rollout](public-demo-controls.md#session-allowances-and-deployment-overrides).
+`DEMO_PAYMENT_ATTEMPTS_PER_SESSION=50` and redeploy the updated backend to use fifty.
+Earlier revisions support ceilings of three or five; deploy compatible code.
+Existing consumed reservations continue to count; no reset or migration is needed.
+Apply all increased cumulative limits together; throughput controls and hidden
+AI daily/minute settings remain unchanged. See [allowances and rollout](usage-allowances.md).
 Zero closes new-attempt admission. It also consumes normal write allowance.
 Cancelling, failing, expiring, signing out or changing sessions does not refund
 the shared charge. Reusing the same saved attempt/approval does not consume a new
@@ -121,8 +122,8 @@ PUBLIC_DEMO_MODE=true
 PUBLIC_SANDBOX_PAYMENTS_ENABLED=true
 PAYPAL_ENVIRONMENT=sandbox
 PAYPAL_SANDBOX_ENABLED=true
-DEMO_PAYMENT_ATTEMPTS_GLOBAL=20
-DEMO_PAYMENT_ATTEMPTS_PER_SESSION=5
+DEMO_PAYMENT_ATTEMPTS_GLOBAL=200
+DEMO_PAYMENT_ATTEMPTS_PER_SESSION=50
 PUBLIC_WEBHOOKS_ENABLED=false
 ```
 

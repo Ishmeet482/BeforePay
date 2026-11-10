@@ -495,13 +495,14 @@ preview hosts. Preserve cookies, Origin, CSRF and no-cache headers through `/api
 | `GEMINI_API_KEY` | Backend-only; configured privately for explicitly budgeted AI. |
 | `PUBLIC_SANDBOX_PAYMENTS_ENABLED`, `PAYPAL_SANDBOX_ENABLED` | Default `false`; both must be explicitly `true` for hosted sandbox checkout, with complete same-app sandbox credentials and runtime grants. |
 | `PAYPAL_ENVIRONMENT`, PayPal credential variables | Only `sandbox`; client ID, secret and merchant ID configured privately in backend. Only client ID is exposed to SDK. |
-| `DEMO_PAYMENT_ATTEMPTS_GLOBAL`, `DEMO_PAYMENT_ATTEMPTS_PER_SESSION` | Default `20` / `5`, durable all-time new-attempt caps, not daily resets. |
+| `DEMO_PAYMENT_ATTEMPTS_GLOBAL`, `DEMO_PAYMENT_ATTEMPTS_PER_SESSION` | Default `200` / `50`, durable all-time new-attempt caps, not daily resets. |
 | `PUBLIC_WEBHOOKS_ENABLED` | `false`; hosted webhooks remain disabled. |
 
-Session booking default is **5** (`DEMO_BOOKINGS_PER_SESSION`); public maximum 5.
-Existing Production overrides must be updated to **5 for both session settings**
-and the updated backend redeployed. Existing reservations continue counting;
-global/write/AI controls are unchanged. See [allowance rollout and constraints](docs/public-demo-controls.md#session-allowances-and-deployment-overrides).
+Cumulative defaults increased 10×: **1000/50 bookings**, **200/50 payment
+reservations** globally/per session, plus source/storage/write/session-AI budgets.
+Apply the complete [Production allowance block and readiness checklist](docs/usage-allowances.md)
+with compatible backend code. Preserve the three hidden AI daily/minute settings
+unchanged; existing usage still counts. No quota change fixes database pool timeouts.
 
 Frontend needs no database/provider secrets or `VITE_*` configuration. Retain
 conservative session/resource caps and bounded connection pools. Runtime cannot
