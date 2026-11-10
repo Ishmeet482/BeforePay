@@ -107,6 +107,7 @@ def test_saved_state_routes_under_restricted_role(restricted_hosting):
             "/cancellation/rules?limit=100&offset=0",
             "/checkout/attempts",
             "/checkout/eligibility",
+            "/saved-state",
         ]
         for path in paths:
             response = client.get(base + path)
@@ -176,6 +177,7 @@ def test_parallel_saved_state_gets_do_not_wait_for_each_other(restricted_hosting
                     "/cancellation/rules?limit=100&offset=0",
                     "/checkout/attempts",
                     "/checkout/eligibility",
+                    "/saved-state",
                 ]
                 pending = [workers.submit(client.get, base + path) for path in paths]
                 for response in pending:
@@ -209,6 +211,7 @@ def test_read_burst_pool_timeout_and_bounded_lifecycle(restricted_hosting, caplo
             "/cancellation/rules",
             "/checkout/attempts",
             "/checkout/eligibility",
+            "/saved-state",
         ]
         release, lock = Event(), Lock()
         starts = 0

@@ -38,6 +38,7 @@ const creationFixture = String.raw`
    const response=await original(input,options);const rows=await response.json();return Response.json(created?[created,...rows]:rows);
   }
   if(path.startsWith('/api/bookings/new-booking/')){
+   if(path.endsWith('/saved-state'))return original(input,options);
    window.__reads.push(raw);let data=[];
    if(path.endsWith('/review'))data={agreement_id:null,fingerprint:null,source_ids:[],latest_draft_id:null,blockers:[],confirmation_current:false,requires_review:true,confirmation:null};
    else if(path.endsWith('/checkout/eligibility'))data={eligible:false,blockers:['current_confirmation_required'],sandbox_configured:true};

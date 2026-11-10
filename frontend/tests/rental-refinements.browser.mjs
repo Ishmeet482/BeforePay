@@ -22,6 +22,7 @@ const extra = String.raw`
   if(path==='/api/bookings'&&options.method==='POST') {const body=JSON.parse(options.body);window.__writes.push({path,body});created={id:'new-rental',title:body.title};return Response.json(created,{status:201})}
   if(path==='/api/bookings'&&created)return Response.json([created]);
   if(path.startsWith('/api/bookings/new-rental/')){
+   if(path.endsWith('/saved-state'))return base(input,options);
    if(path.endsWith('/review'))return Response.json({agreement_id:null,confirmation_current:false,blockers:[],source_ids:[],latest_draft_id:null});
    if(path.endsWith('/checkout/eligibility'))return Response.json({eligible:false,blockers:['current_confirmation_required'],sandbox_configured:false});
    return Response.json([]);

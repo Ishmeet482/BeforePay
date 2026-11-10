@@ -196,6 +196,9 @@ def test_complete_payment_requires_verified_capture_and_links_receipt(
     assert receipt["context"]["proposal_id"] == context["proposal"]["id"]
     assert receipt["context"]["comparison_id"] == context["comparison"]["id"]
     assert receipt["amount"] == "200.00" and state(api, context) == original
+    snapshot = api.get(f"/api/bookings/{context['booking']}/saved-state").json()
+    assert snapshot["receipt"] == receipt
+    assert not snapshot["eligible"]
     assert capture(api, context, attempt).json()["status"] == "completed"
     assert len(paypal.capture_keys) == 1
     assert not api.get(path(context) + "/eligibility").json()["eligible"]

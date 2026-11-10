@@ -4,6 +4,7 @@ from fastapi import FastAPI
 
 from app.agreements.router import router as agreements_router
 from app.bookings.router import router as bookings_router
+from app.bookings.snapshot import router as saved_state_router
 from app.cancellations.router import router as cancellation_router
 from app.clarifications.corrections import router as correction_reviews_router
 from app.clarifications.replies import router as clarification_replies_router
@@ -38,6 +39,7 @@ app.include_router(demo_sessions_router)
 app.include_router(template_router)
 app.include_router(health_router)
 app.include_router(bookings_router)
+app.include_router(saved_state_router)
 app.include_router(evidence_router)
 app.include_router(drafts_router)
 app.include_router(agreements_router)

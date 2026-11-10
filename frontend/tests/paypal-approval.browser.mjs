@@ -45,6 +45,7 @@ window.fetch=async(input,options={})=>{
   throw new Error('Unexpected mutation: '+url);
  }
  if(url.startsWith('/api/bookings?'))data=[{id:'b1',title:'Synthetic existing-order regression'}];
+ else if(url.endsWith('/saved-state'))data={review:{agreement_id:null,fingerprint:null,source_ids:[],latest_draft_id:null,blockers:['agreement_missing'],confirmation_current:false,requires_review:true,confirmation:null},agreement:null,proposal:null,comparison:null,rules:[],attempts:[],receipt:null,eligible:true,blockers:[],sandbox_configured:true};
  else if(url.endsWith('/checkout/eligibility'))data={eligible:true,blockers:[],context,fingerprint:'e'.repeat(64),sandbox_configured:true};
  else if(url.endsWith('/checkout/config'))data={environment:'sandbox',configured:true,client_id:'SANDBOX_APP_FROM_BACKEND',sdk_url:'https://www.sandbox.paypal.com/web-sdk/v6/core'};
  else if(url.endsWith('/checkout/attempts'))data=[];
@@ -63,14 +64,14 @@ try {
   await evaluate(`document.querySelector('.row-action').click()`)
   await until(`document.querySelector('.tabs button:last-child')`)
   await evaluate(`document.querySelector('.tabs button:last-child').click()`)
-  await until(`document.querySelector('.workspace h2')?.textContent==='Sandbox checkout'&&!document.querySelector('.workspace').matches('[aria-busy=true]')`)
+  await until(`document.querySelector('.workspace-host:not([hidden]) .workspace h2')?.textContent==='Sandbox checkout'&&!document.querySelector('.workspace-host:not([hidden]) .workspace').matches('[aria-busy=true]')`)
   await evaluate(`window.clickText=text=>[...document.querySelectorAll('button')].find(b=>b.textContent.trim()===text).click()`)
-  await evaluate(`(()=>{const input=document.querySelector('.workspace label input:not([type=checkbox])');Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,'Test buyer');input.dispatchEvent(new Event('input',{bubbles:true}))})()`)
-  await evaluate(`document.querySelector('.workspace .check input').click()`)
+  await evaluate(`(()=>{const input=document.querySelector('.workspace-host:not([hidden]) .workspace label input:not([type=checkbox])');Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,'Test buyer');input.dispatchEvent(new Event('input',{bubbles:true}))})()`)
+  await evaluate(`document.querySelector('.workspace-host:not([hidden]) .workspace .check input').click()`)
   await evaluate(`clickText('Approve sandbox checkout')`)
-  await until(`window.__writes.length===1&&!document.querySelector('.workspace').matches('[aria-busy=true]')`)
+  await until(`window.__writes.length===1&&!document.querySelector('.workspace-host:not([hidden]) .workspace').matches('[aria-busy=true]')`)
   await evaluate(`clickText('Load PayPal sandbox button')`)
-  await until(`document.querySelector('paypal-button')&&!document.querySelector('.workspace').matches('[aria-busy=true]')`)
+  await until(`document.querySelector('paypal-button')&&!document.querySelector('.workspace-host:not([hidden]) .workspace').matches('[aria-busy=true]')`)
   assert(await evaluate(`window.__writes.length===1`), 'SDK initialization does not create an order')
   await evaluate(`document.querySelector('paypal-button').click()`)
   await until(`window.__sdk.order`)

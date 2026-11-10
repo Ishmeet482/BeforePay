@@ -1,6 +1,6 @@
 import type { Tone } from './product-ui'
 import { claim, corroboratedRows, row } from './conditions'
-import { allPages, request, type Agreement, type Claim, type Category, type ReviewState } from './review-api'
+import { request, type Agreement, type Claim, type Category, type ReviewState } from './review-api'
 export type Step = 'clarifications' | 'reference' | 'overview' | 'sources' | 'review' | 'comparison' | 'cancellation' | 'checkout'
 export type ProposalSummary = { id: string; version: number; fingerprint: string; content: Record<string, Claim[]> }
 export type ComparisonSummary = { id: string; stale: boolean; results: { category: string; status: string }[] }
@@ -9,16 +9,9 @@ export type AttemptSummary = { id: string; status: string; order_id: string | nu
 export type ReceiptSummary = { id: string; amount: string; currency: string; created_at: string; context?: { agreement_id: string; agreement_version: number; proposal_id: string; proposal_version: number } }
 export type Snapshot = { review: ReviewState; agreement: Agreement | null; proposal: ProposalSummary | null; comparison: ComparisonSummary | null; rules: RuleSummary[]; attempts: AttemptSummary[]; receipt: ReceiptSummary | null; eligible: boolean; blockers: string[]; sandboxConfigured: boolean }
 export async function loadSnapshot(id: string, signal?: AbortSignal): Promise<Snapshot> {
-  const base = `/bookings/${id}`
-  const [review, proposals, comparisons, rules, attempts, eligibility] = await Promise.all([
-    request<ReviewState>(`${base}/review`, { signal }), request<ProposalSummary[]>(`${base}/merchant-bookings?limit=1`, { signal }),
-    request<ComparisonSummary[]>(`${base}/comparisons?limit=1`, { signal }), allPages<RuleSummary>(`${base}/cancellation/rules`, signal),
-    request<AttemptSummary[]>(`${base}/checkout/attempts`, { signal }), request<{ eligible: boolean; blockers: string[]; sandbox_configured: boolean }>(`${base}/checkout/eligibility`, { signal }),
-  ])
-  const agreement = review.agreement_id ? await request<Agreement>(`${base}/agreements/${review.agreement_id}`, { signal }) : null
-  let receipt = null
-  if (attempts.some(a => a.status === 'completed')) receipt = await request<ReceiptSummary>(`${base}/checkout/receipt`, { signal })
-  return { review, agreement, proposal: proposals[0] ?? null, comparison: comparisons[0] ?? null, rules, attempts, receipt, eligible: eligibility.eligible, blockers: eligibility.blockers, sandboxConfigured: eligibility.sandbox_configured }
+  const saved = await request<Omit<Snapshot, 'sandboxConfigured'> & { sandbox_configured: boolean }>(`/bookings/${id}/saved-state`, { signal })
+  if (!saved?.review || !Array.isArray(saved.rules) || !Array.isArray(saved.attempts) || !Array.isArray(saved.blockers) || typeof saved.eligible !== 'boolean') throw new Error('Saved booking state response is incomplete. Check that the updated backend is deployed; no empty or approved state was assumed.')
+  return { ...saved, sandboxConfigured: saved.sandbox_configured }
 }
 export function nextStep(s: Snapshot): { step: Step; label: string; status: string; detail: string; tone: Tone } {
   if (s.receipt) return { step: 'checkout', label: 'View receipt', status: 'Paid · sandbox', tone: 'success', detail: 'Completed capture recorded. Receipt preserves the versions paid for.' }

@@ -84,7 +84,7 @@ def test_database_error_logs_stage_and_allowlisted_state_only(caplog, state):
     assert SECRET not in str(raised.value.detail)
     result = diagnostic(caplog)
     assert result["boundary"] == "database_readiness"
-    assert result["check"] == "migration_revision"
+    assert result["check"] == "readiness_snapshot"
     assert result["exception_type"] == "OperationalError"
     assert result["sqlstate"] == (state if state != SECRET else "OTHER")
     assert session.scalar.call_count == 2  # No retry.

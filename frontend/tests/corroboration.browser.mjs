@@ -19,7 +19,8 @@ const extra = String.raw`
  window.fetch=async(input,options={})=>{
   const path=new URL(String(input),location.origin).pathname;
   const read=path.startsWith('/api/')&&path!='/api/demo-sessions'&&(!options.method||options.method==='GET');
-  if(read){window.__activeReads++;window.__maxReads=Math.max(window.__maxReads,window.__activeReads)}
+  const counted=read&&!options.__snapshotFixture;
+  if(counted){window.__activeReads++;window.__maxReads=Math.max(window.__maxReads,window.__activeReads)}
   try{
    if(read)await new Promise(r=>setTimeout(r,45));
    if(read&&window.__failLoads&&path.includes('/bookings/b1/')&&path.endsWith('/'+window.__failLoads))return Response.json({detail:{code:'public_setup_required',message:'Sanitised fixture readiness failure'}},{status:503});
@@ -31,7 +32,7 @@ const extra = String.raw`
    }
    if(read&&path.endsWith('/sources/s2'))return Response.json({id:'s2',source_type:'message',medium:'pasted_text',original_text:'Synthetic corroborating source',pages:[]});
    return response;
-  }finally{if(read)window.__activeReads--}
+  }finally{if(counted)window.__activeReads--}
  }
 })();`
 async function nav(fail='',role='buyer') { await send('Page.navigate',{url:origin+'/?case=ready&fail='+fail+'&run='+(++navigation)+'#'+(role==='buyer'?'bookings':'merchant/bookings')});await until(`document.querySelector('.row-action')`);await until(`!document.querySelector('.booking-row .state-label').textContent.includes('Checking')`) }

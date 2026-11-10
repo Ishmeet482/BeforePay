@@ -29,6 +29,7 @@ window.fetch=async(url,options={})=>{url=String(url);if(url==='/api/demo-session
  agreement=next;return Response.json(next,{status:201});
 };let data;
 if(url.startsWith('/api/bookings?'))data=[{id:'b1',title:'Synthetic included-items regression'}];
+else if(url.endsWith('/saved-state'))data={review:{agreement_id:agreement.id,fingerprint:agreement.fingerprint,source_ids:['s1'],latest_draft_id:'d1',blockers:['equipment_missing'],confirmation_current:false,requires_review:true,confirmation:null},agreement,proposal:null,comparison:null,rules:[],attempts:[],receipt:null,eligible:false,blockers:['equipment_missing'],sandbox_configured:false};
 else if(url.includes('/agreements?'))data=[agreement];
 else if(url.includes('/drafts?'))data=[{id:'d1',version:1}];
 else if(url.endsWith('/review'))data={agreement_id:agreement.id,fingerprint:agreement.fingerprint,source_ids:['s1'],latest_draft_id:'d1',blockers:['equipment_missing'],confirmation_current:false,requires_review:true,confirmation:null};

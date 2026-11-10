@@ -76,7 +76,9 @@ export default function CancellationWorkspace({ bookingId, merchant = false }: {
     if (activeStep !== 'cancellation' || !ruleRequest || ruleRequest.serial === appliedRuleRequest.current || ruleRequest.workspace !== activeWorkspace || ruleRequest.workspace !== (merchant ? 'merchant' : 'buyer') || busy) return
     appliedRuleRequest.current = ruleRequest.serial
     const savedSource = ruleRequest.kind === 'agreement' ? snapshot?.agreement : snapshot?.proposal
-    const needsSource = savedSource?.id !== sources.find(s => s.target.kind === ruleRequest.kind)?.target.id
+    // A pending/failed parent read is unknown, not evidence that this source
+    // changed. Retain unsaved fields; explicit saves still recheck server versions.
+    const needsSource = !!snapshot && savedSource?.id !== sources.find(s => s.target.kind === ruleRequest.kind)?.target.id
     const focusReview = () => requestAnimationFrame(() => { const panel = document.querySelector<HTMLElement>(`.workspace-host:not([hidden]) .rule-workbench`); if (panel instanceof HTMLDetailsElement) panel.open = true; panel?.scrollIntoView({ block: 'start' }); panel?.querySelector<HTMLElement>('summary')?.focus({ preventScroll: true }) })
     if (dirty && (ruleRequest.kind !== kind || needsSource) && !window.confirm('Switch or refresh rule source? Unsaved rule edits will be discarded. Cancel to keep them.')) return
     if (!dirty || ruleRequest.kind !== kind || needsSource) {

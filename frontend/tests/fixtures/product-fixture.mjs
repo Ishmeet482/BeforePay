@@ -49,6 +49,19 @@ export const fixture = String.raw`
  window.fetch=async(input,options={})=>{
    const raw=String(input);if(!raw.startsWith('/api/')){window.__unexpected.push(raw);throw Error('Blocked nonfixture fetch '+raw)};
    const url=new URL(raw,location.origin),path=url.pathname;
+   // Test transport composes existing feature-specific mocks. Production UI
+   // performs one saved-state GET; these internal calls never reach a network.
+   if(path.endsWith('/saved-state')){
+     window.__snapshotRequests=(window.__snapshotRequests||0)+1;
+     const base=path.slice(0,-'/saved-state'.length);
+     const read=async suffix=>{const response=await window.fetch(base+suffix,{...options,__snapshotFixture:true});if(!response.ok)throw response;return response.json()};
+     try{
+       const [review,proposals,comparisons,rules,attempts,eligibility]=await Promise.all([read('/review'),read('/merchant-bookings?limit=1'),read('/comparisons?limit=1'),read('/cancellation/rules?limit=100&offset=0'),read('/checkout/attempts'),read('/checkout/eligibility')]);
+       const agreement=review.agreement_id?await read('/agreements/'+review.agreement_id):null;
+       const receipt=attempts.some(a=>a.status==='completed')?await read('/checkout/receipt'):null;
+       return Response.json({review,agreement,proposal:proposals[0]||null,comparison:comparisons[0]||null,rules,attempts,receipt,eligible:eligibility.eligible,blockers:eligibility.blockers,sandbox_configured:eligibility.sandbox_configured});
+     }catch(error){if(error instanceof Response)return error;throw error}
+   }
    if(path==='/api/demo-sessions')return options.method==='DELETE'?new Response(null,{status:204}):Response.json({active:true,csrf_token:'f'.repeat(64),expires_at:new Date(Date.now()+2700000).toISOString()});
    if(options.method&&options.method!=='GET'){
      const body=options.body instanceof FormData?null:JSON.parse(options.body||'{}');window.__writes.push({path,body});

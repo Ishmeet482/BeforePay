@@ -36,6 +36,11 @@ let active = 0, maximum = 0, calls = 0
 const work = async () => { active++; maximum = Math.max(maximum, active); calls++; await new Promise(r => setTimeout(r, 15)); active--; return calls }
 await Promise.all(Array.from({ length: 12 }, () => boundedRead(AbortSignal.timeout(1000), work)))
 assert.equal(maximum, 2); assert.equal(calls, 12)
+const startedController = new AbortController(); let staleCalls = 0
+const stale = boundedRead(startedController.signal, async () => { staleCalls++ })
+startedController.abort(new DOMException('Cancelled', 'AbortError'))
+await assert.rejects(stale, { name: 'AbortError' })
+assert.equal(staleCalls, 0) // Abort after slot acquisition, before work starts.
 let release
 const held = new Promise(r => { release = r })
 const first = boundedRead(AbortSignal.timeout(1000), () => held)

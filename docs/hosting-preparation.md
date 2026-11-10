@@ -162,6 +162,14 @@ or real Buyer/Merchant roles were added.
 
 ## Database pooling and bounded work
 
+**10 November preparation:** owner-scoped saved-state aggregation and two-query
+readiness checks reduce repeated reads while preserving guards. Singapore backend
+placement is prepared against the verified Singapore Neon region; the user
+confirmed the current selected Vercel region is Washington. The initial cap-three
+booking proposal is superseded by the separate [cumulative allowance change](usage-allowances.md);
+no hosted setting or data was changed. See [capacity, read trace, local measurements and
+rollout](demo-capacity-and-read-performance.md).
+
 ### Sanitised setup-failure diagnostics — 2026-11-07
 
 **9 November follow-up:** a user-supplied entry confirms `database_readiness` /
@@ -197,7 +205,7 @@ names or exception text. No traceback/exception object, request path/query, cook
 header, credentials, connection URL, source content or SQL parameters are attached
 to these diagnostic records.
 
-Hosted readiness executes seven sequential queries, plus the runtime-privilege
+Before the 10 November preparation, hosted readiness executed seven sequential queries, plus the runtime-privilege
 query on Vercel, before endpoint processing. Its transaction normally retains a
 connection until request cleanup. Existing runtime defaults are pool size **2**,
 overflow **0**, pool acquisition **3 seconds**, connection establishment **3

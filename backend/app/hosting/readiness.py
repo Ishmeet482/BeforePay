@@ -22,57 +22,25 @@ def require_public_database(session, settings):
     check = "database_identity"
     try:
         name = session.scalar(text("SELECT current_database()"))
-        check = "migration_revision"
-        revision = session.scalar(text("SELECT version_num FROM alembic_version"))
-        check = "deployment_marker"
-        marker = session.execute(
-            text(
-                "SELECT database_name, template_digest FROM demo_deployment WHERE id=1"
-            )
-        ).one_or_none()
-        check = "immutable_triggers"
-        triggers = set(
-            session.scalars(
-                text(
-                    "SELECT tgname FROM pg_trigger WHERE tgenabled='O' "
-                    "AND NOT tgisinternal"
-                )
-            )
-        )
-        check = "admission_control"
-        control = session.scalar(
-            text("SELECT count(*) FROM demo_admission_control WHERE id=1")
-        )
-        check = "ownership_column"
-        owner_column = session.scalar(
-            text(
-                "SELECT count(*) FROM information_schema.columns "
-                "WHERE table_schema='public' AND table_name='bookings' "
-                "AND column_name='owner_session_id'"
-            )
-        )
-        check = "template_catalogue"
-        catalogue = session.execute(
-            text("SELECT key, version, content, fingerprint FROM demo_templates")
-        ).all()
-        catalogue_valid = {
-            (row.key, row.version, row.fingerprint) for row in catalogue
-        } == {(row["key"], row["version"], row["fingerprint"]) for row in TEMPLATES}
-        catalogue_valid = catalogue_valid and all(
-            row.content
-            == next(
-                t["content"]
-                for t in TEMPLATES
-                if t["key"] == row.key and t["version"] == row.version
-            )
-            for row in catalogue
-        )
-        safe_role = True
-        payment_role = True
-        if settings.vercel:
-            check = "runtime_privileges"
-            safe_role = session.scalar(
-                text("""
+        check = "readiness_snapshot"
+        # All invariants are still checked on every public request. One SQL
+        # snapshot avoids seven/eight sequential network round trips; no cache.
+        snapshot = session.scalar(
+            text("""
+            SELECT jsonb_build_object(
+              'revision', (SELECT version_num FROM alembic_version),
+              'marker', (SELECT jsonb_build_array(database_name, template_digest)
+                         FROM demo_deployment WHERE id=1),
+              'triggers', (SELECT coalesce(jsonb_agg(tgname), '[]'::jsonb)
+                           FROM pg_trigger WHERE tgenabled='O' AND NOT tgisinternal),
+              'control', (SELECT count(*) FROM demo_admission_control WHERE id=1),
+              'owner_column', (SELECT count(*) FROM information_schema.columns
+                  WHERE table_schema='public' AND table_name='bookings'
+                    AND column_name='owner_session_id'),
+              'catalogue', (SELECT coalesce(jsonb_agg(jsonb_build_object(
+                  'key', key, 'version', version, 'content', content,
+                  'fingerprint', fingerprint)), '[]'::jsonb) FROM demo_templates),
+              'safe_role', CASE WHEN :runtime THEN (
                 SELECT NOT (rolsuper OR rolbypassrls OR rolcreatedb OR rolcreaterole)
                   AND NOT has_database_privilege(current_user,
                         current_database(), 'CREATE')
@@ -82,23 +50,40 @@ def require_public_database(session, settings):
                   AND NOT has_table_privilege(current_user,
                         'public.demo_admissions', 'TRUNCATE')
                 FROM pg_roles WHERE rolname=current_user
-            """)
+              ) ELSE true END,
+              'payment_role', CASE WHEN :payment THEN (
+                SELECT has_table_privilege(current_user, 'payment_attempts', 'INSERT')
+                  AND has_table_privilege(current_user, 'payment_events', 'INSERT')
+                  AND has_table_privilege(current_user, 'sandbox_receipts', 'INSERT')
+                  AND bool_and(has_column_privilege(current_user,
+                      'payment_attempts', col, 'UPDATE'))
+                FROM unnest(ARRAY['order_id','capture_id','status','error_code',
+                    'capture_requested_at','updated_at']) AS col
+              ) ELSE true END
             )
-            if settings.public_sandbox_payments_enabled:
-                check = "payment_runtime_privileges"
-                payment_role = session.scalar(
-                    text("""
-                    SELECT has_table_privilege(current_user,
-                          'payment_attempts', 'INSERT')
-                      AND has_table_privilege(current_user, 'payment_events', 'INSERT')
-                      AND has_table_privilege(current_user,
-                          'sandbox_receipts', 'INSERT')
-                      AND bool_and(has_column_privilege(current_user,
-                          'payment_attempts', col, 'UPDATE'))
-                    FROM unnest(ARRAY['order_id','capture_id','status','error_code',
-                        'capture_requested_at','updated_at']) AS col
-                    """)
-                )
+            """),
+            {
+                "runtime": settings.vercel,
+                "payment": settings.vercel and settings.public_sandbox_payments_enabled,
+            },
+        )
+        revision, marker = snapshot["revision"], snapshot["marker"]
+        triggers = set(snapshot["triggers"])
+        control, owner_column = snapshot["control"], snapshot["owner_column"]
+        catalogue = snapshot["catalogue"]
+        catalogue_valid = {
+            (row["key"], row["version"], row["fingerprint"]) for row in catalogue
+        } == {(row["key"], row["version"], row["fingerprint"]) for row in TEMPLATES}
+        catalogue_valid = catalogue_valid and all(
+            row["content"]
+            == next(
+                t["content"]
+                for t in TEMPLATES
+                if t["key"] == row["key"] and t["version"] == row["version"]
+            )
+            for row in catalogue
+        )
+        safe_role, payment_role = snapshot["safe_role"], snapshot["payment_role"]
         checks = {
             "database_identity": name == settings.public_demo_database,
             "migration_revision": revision == REVISION,

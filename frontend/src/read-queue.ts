@@ -19,6 +19,6 @@ export async function boundedRead<T>(signal: AbortSignal, work: () => Promise<T>
     signal.addEventListener('abort', abort, { once: true })
     pending.push(start); drain()
   })
-  try { return await work() } finally { release() }
+  try { signal.throwIfAborted(); return await work() } finally { release() }
 }
 function drain() { while (active < 2 && pending.length) pending.shift()!() }
